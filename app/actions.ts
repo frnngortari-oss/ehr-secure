@@ -34,7 +34,7 @@ const problemSchema = z.object({
 const encounterSchema = z.object({
   patientId: z.string().uuid(),
   reason: z.string().min(3),
-  assessment: z.string().min(3),
+  assessment: z.string().optional(),
   plan: z.string().min(3),
   occurredAt: z.string().optional(),
   content: z.string().optional(),
@@ -221,13 +221,14 @@ export async function createEncounter(formData: FormData) {
   if (!parsed.success) throw new Error("Datos de evolucion invalidos");
 
   const occurredAt = parsed.data.occurredAt ? new Date(parsed.data.occurredAt) : new Date();
-  const content = parsed.data.content?.trim() || `${parsed.data.assessment}\n\nPlan: ${parsed.data.plan}`;
+  const assessment = parsed.data.assessment?.trim() || "Sin evaluacion";
+  const content = parsed.data.content?.trim() || `Motivo: ${parsed.data.reason}\n\nPlan: ${parsed.data.plan}`;
 
   const encounter = await prisma.encounter.create({
     data: {
       patientId: parsed.data.patientId,
       reason: parsed.data.reason,
-      assessment: parsed.data.assessment,
+      assessment,
       plan: parsed.data.plan,
       occurredAt,
       content,
@@ -252,7 +253,7 @@ export async function createEncounter(formData: FormData) {
 }
 
 export async function createAppointment(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
   const parsed = appointmentSchema.safeParse({
     patientId: formData.get("patientId"),
     agendaName: formData.get("agendaName"),

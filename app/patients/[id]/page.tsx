@@ -167,10 +167,6 @@ export default async function PatientDetailPage({ params }: Params) {
               <input name="reason" required />
             </div>
             <div style={{ marginTop: 8 }}>
-              <label>Evaluacion</label>
-              <textarea name="assessment" rows={2} required />
-            </div>
-            <div style={{ marginTop: 8 }}>
               <label>Plan</label>
               <textarea name="plan" rows={2} required />
             </div>
@@ -193,7 +189,6 @@ export default async function PatientDetailPage({ params }: Params) {
               Profesional: {encounter.author?.fullName ?? "Sin dato"} | Problema: {encounter.problem?.title ?? "Sin asociar"}
             </p>
             <p><strong>Motivo:</strong> {encounter.reason}</p>
-            <p><strong>Evaluacion:</strong> {encounter.assessment}</p>
             <p><strong>Plan:</strong> {encounter.plan}</p>
             {encounter.content ? <p style={{ whiteSpace: "pre-wrap" }}>{encounter.content}</p> : null}
           </article>

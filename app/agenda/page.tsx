@@ -11,6 +11,7 @@ type SearchParams = {
   q?: string;
   calendarDate?: string;
   selectedTime?: string;
+  slotMinutes?: string;
 };
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -76,6 +77,8 @@ export default async function AgendaPage({ searchParams }: Props) {
   const hourFrom = params.hourFrom ?? "08:00";
   const hourTo = params.hourTo ?? "20:00";
   const calendarDate = params.calendarDate ?? dateFrom;
+  const slotMinutesRaw = Number.parseInt(params.slotMinutes ?? "30", 10);
+  const slotMinutes = Number.isFinite(slotMinutesRaw) ? Math.min(120, Math.max(5, slotMinutesRaw)) : 30;
   const selectedTime = params.selectedTime ?? "10:00";
 
   const start = new Date(`${dateFrom}T${hourFrom}:00`);
@@ -140,7 +143,7 @@ export default async function AgendaPage({ searchParams }: Props) {
     bySlot.set(key, prev);
   }
 
-  const slots = buildSlots(hourFrom, hourTo, 20);
+  const slots = buildSlots(hourFrom, hourTo, slotMinutes);
 
   const monthBase = new Date(`${calendarDate}T00:00:00`);
   const firstWeekDay = new Date(monthBase.getFullYear(), monthBase.getMonth(), 1).getDay();
@@ -150,6 +153,7 @@ export default async function AgendaPage({ searchParams }: Props) {
   if (params.q) baseQs.set("q", params.q);
   baseQs.set("hourFrom", hourFrom);
   baseQs.set("hourTo", hourTo);
+  baseQs.set("slotMinutes", String(slotMinutes));
   baseQs.set("calendarDate", calendarDate);
   baseQs.set("dateFrom", dateFrom);
   baseQs.set("dateTo", dateTo);
@@ -170,9 +174,11 @@ export default async function AgendaPage({ searchParams }: Props) {
           <label>Hasta</label>
           <input type="date" name="dateTo" defaultValue={dateTo} />
           <label>Hora desde</label>
-          <input type="time" name="hourFrom" defaultValue={hourFrom} step={1200} />
+          <input type="time" name="hourFrom" defaultValue={hourFrom} />
           <label>Hora hasta</label>
-          <input type="time" name="hourTo" defaultValue={hourTo} step={1200} />
+          <input type="time" name="hourTo" defaultValue={hourTo} />
+          <label>Intervalo grilla (min)</label>
+          <input type="number" name="slotMinutes" min={5} max={120} step={5} defaultValue={slotMinutes} />
           <label>Buscar paciente</label>
           <input name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido o DNI" />
           <div className="row" style={{ marginTop: 10 }}>
@@ -206,7 +212,7 @@ export default async function AgendaPage({ searchParams }: Props) {
           })}
         </div>
 
-        {(user.role === "ADMIN" || user.role === "RECEPCION") && (
+        {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO") && (
           <>
             <hr style={{ margin: "14px 0" }} />
             <h4 style={{ margin: 0 }}>Nuevo turno</h4>
@@ -231,7 +237,7 @@ export default async function AgendaPage({ searchParams }: Props) {
                 </div>
                 <div>
                   <label>Hora</label>
-                  <input type="time" name="time" defaultValue={selectedTime} step={1200} required />
+                  <input type="time" name="time" defaultValue={selectedTime} required />
                 </div>
               </div>
               <div style={{ marginTop: 8 }}>
@@ -252,6 +258,7 @@ export default async function AgendaPage({ searchParams }: Props) {
         <h3 style={{ marginTop: 0 }}>
           Agenda por horas ({dateFrom}) | Turnos en filtro: {appointments.length}
         </h3>
+        <p className="small">Intervalo visual: {slotMinutes} minutos</p>
         <div className="hour-grid">
           {slots.map((slot) => {
             const items = bySlot.get(slot) ?? [];
