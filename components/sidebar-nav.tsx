@@ -33,6 +33,7 @@ const sections: Array<{ title: string; items: Item[] }> = [
   {
     title: "Admin",
     items: [
+      { href: "/admin/users", label: "Usuarios", icon: "users", roles: ["ADMIN"] },
       { href: "/audit", label: "Auditoria", icon: "audit", roles: ["ADMIN"] },
       { href: "/admin/offline", label: "Backup", icon: "backup", roles: ["ADMIN"] }
     ]

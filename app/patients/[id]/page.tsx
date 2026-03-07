@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createEncounter, createProblem, updatePatient } from "@/app/actions";
+import { createEncounter, createProblem, updateEncounter, updatePatient } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -163,6 +163,47 @@ export default async function PatientDetailPage({ params, searchParams }: Params
               <p style={{ margin: "4px 0" }}><strong>Motivo:</strong> {encounter.reason}</p>
               <p style={{ margin: "4px 0" }}><strong>Plan:</strong> {encounter.plan}</p>
               {encounter.content ? <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{encounter.content}</p> : null}
+              {canAddEncounter ? (
+                <details style={{ marginTop: 8 }}>
+                  <summary className="small" style={{ cursor: "pointer" }}>Editar evolucion</summary>
+                  <form action={updateEncounter} style={{ marginTop: 8 }}>
+                    <input type="hidden" name="encounterId" value={encounter.id} />
+                    <input type="hidden" name="patientId" value={patient.id} />
+                    <div className="grid">
+                      <div>
+                        <label>Fecha y hora</label>
+                        <input type="datetime-local" name="occurredAt" defaultValue={toDatetimeInputValue(encounter.occurredAt)} required />
+                      </div>
+                      <div>
+                        <label>Problema asociado</label>
+                        <select name="problemId" defaultValue={encounter.problemId ?? ""}>
+                          <option value="">Sin asociar</option>
+                          {patient.problems.map((problem) => (
+                            <option key={problem.id} value={problem.id}>{problem.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <label>Motivo</label>
+                      <input name="reason" defaultValue={encounter.reason} required />
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <label>Texto libre</label>
+                      <textarea name="content" rows={4} defaultValue={encounter.content ?? ""} />
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <label>Plan</label>
+                      <textarea name="plan" rows={3} defaultValue={encounter.plan} required />
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <label>Motivo de la edicion (obligatorio)</label>
+                      <textarea name="editReason" rows={2} required placeholder="Ej: Correccion de dato clinico" />
+                    </div>
+                    <button style={{ marginTop: 8 }} type="submit">Guardar edicion</button>
+                  </form>
+                </details>
+              ) : null}
             </article>
           ))}
         </div>
@@ -217,6 +258,47 @@ export default async function PatientDetailPage({ params, searchParams }: Params
             <p><strong>Motivo:</strong> {encounter.reason}</p>
             <p><strong>Plan:</strong> {encounter.plan}</p>
             {encounter.content ? <p style={{ whiteSpace: "pre-wrap" }}>{encounter.content}</p> : null}
+            {canAddEncounter ? (
+              <details>
+                <summary className="small" style={{ cursor: "pointer" }}>Editar evolucion</summary>
+                <form action={updateEncounter} style={{ marginTop: 8 }}>
+                  <input type="hidden" name="encounterId" value={encounter.id} />
+                  <input type="hidden" name="patientId" value={patient.id} />
+                  <div className="grid">
+                    <div>
+                      <label>Fecha y hora</label>
+                      <input type="datetime-local" name="occurredAt" defaultValue={toDatetimeInputValue(encounter.occurredAt)} required />
+                    </div>
+                    <div>
+                      <label>Problema asociado</label>
+                      <select name="problemId" defaultValue={encounter.problemId ?? ""}>
+                        <option value="">Sin asociar</option>
+                        {patient.problems.map((problem) => (
+                          <option key={problem.id} value={problem.id}>{problem.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <label>Motivo</label>
+                    <input name="reason" defaultValue={encounter.reason} required />
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <label>Texto libre</label>
+                    <textarea name="content" rows={4} defaultValue={encounter.content ?? ""} />
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <label>Plan</label>
+                    <textarea name="plan" rows={3} defaultValue={encounter.plan} required />
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <label>Motivo de la edicion (obligatorio)</label>
+                    <textarea name="editReason" rows={2} required placeholder="Ej: Correccion de dato clinico" />
+                  </div>
+                  <button style={{ marginTop: 8 }} type="submit">Guardar edicion</button>
+                </form>
+              </details>
+            ) : null}
           </article>
         ))}
       </div>

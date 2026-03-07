@@ -9,7 +9,8 @@ type IconName =
   | "new"
   | "kpi"
   | "audit"
-  | "backup";
+  | "backup"
+  | "users";
 
 type Props = {
   name: IconName;
@@ -93,6 +94,15 @@ export function NavIcon({ name, className }: Props) {
           <path d="M12 16V8" />
           <path d="m8.5 11.5 3.5-3.5 3.5 3.5" />
           <path d="M5 17.5A4.5 4.5 0 1 1 6.5 9a6 6 0 1 1 11 3.5" />
+        </svg>
+      );
+    case "users":
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="9" r="2.5" />
+          <circle cx="16" cy="8" r="2" />
+          <path d="M4 18c0-2.6 2.2-4.5 5-4.5s5 1.9 5 4.5" />
+          <path d="M14 17c.3-1.6 1.7-2.7 3.5-2.7 1.2 0 2.2.4 2.9 1.1" />
         </svg>
       );
     default:

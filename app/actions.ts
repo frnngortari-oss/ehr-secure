@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { clearSession, requireRole, setSession } from "@/lib/auth";
-import { verifyPassword } from "@/lib/security";
+import { clearSession, getCurrentUser, requireRole, setSession } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/security";
 import { createAuditLog } from "@/lib/audit";
 
 const loginSchema = z.object({
@@ -41,6 +41,17 @@ const encounterSchema = z.object({
   problemId: z.string().uuid().optional().or(z.literal(""))
 });
 
+const encounterUpdateSchema = z.object({
+  encounterId: z.string().uuid(),
+  patientId: z.string().uuid(),
+  reason: z.string().min(3),
+  plan: z.string().min(3),
+  content: z.string().optional(),
+  occurredAt: z.string().min(1),
+  problemId: z.string().uuid().optional().or(z.literal("")),
+  editReason: z.string().min(3)
+});
+
 const appointmentSchema = z.object({
   patientId: z.string().uuid().optional().or(z.literal("")),
   agendaName: z.string().min(3),
@@ -70,6 +81,13 @@ const appointmentStatusSchema = z.object({
   status: z.enum(["PENDIENTE", "ATENDIDO", "AUSENTE", "CANCELADO"])
 });
 
+const adminUserCreateSchema = z.object({
+  email: z.string().min(3),
+  fullName: z.string().min(3),
+  role: z.enum(["MEDICO", "RECEPCION"]),
+  password: z.string().min(6)
+});
+
 export async function login(formData: FormData) {
   const parsed = loginSchema.safeParse({
     username: formData.get("username"),
@@ -84,11 +102,30 @@ export async function login(formData: FormData) {
     throw new Error("Usuario o contrasena incorrectos");
   }
 
+  await createAuditLog({
+    actorId: user.id,
+    actorRole: user.role,
+    action: "LOGIN",
+    entity: "Session",
+    entityId: user.id,
+    after: { email: user.email }
+  });
+
   await setSession(user.id);
   redirect("/");
 }
 
 export async function logout() {
+  const user = await getCurrentUser();
+  if (user) {
+    await createAuditLog({
+      actorId: user.id,
+      actorRole: user.role,
+      action: "LOGOUT",
+      entity: "Session",
+      entityId: user.id
+    });
+  }
   await clearSession();
   redirect("/login");
 }
@@ -263,6 +300,54 @@ export async function createEncounter(formData: FormData) {
 
   revalidatePath(`/patients/${parsed.data.patientId}`);
   revalidatePath("/evolutions");
+  revalidatePath("/audit");
+  redirect(`/patients/${parsed.data.patientId}`);
+}
+
+export async function updateEncounter(formData: FormData) {
+  const actor = await requireRole(["ADMIN", "MEDICO"]);
+  const parsed = encounterUpdateSchema.safeParse({
+    encounterId: formData.get("encounterId"),
+    patientId: formData.get("patientId"),
+    reason: formData.get("reason"),
+    plan: formData.get("plan"),
+    content: formData.get("content"),
+    occurredAt: formData.get("occurredAt"),
+    problemId: formData.get("problemId"),
+    editReason: formData.get("editReason")
+  });
+  if (!parsed.success) throw new Error("Datos de edicion de evolucion invalidos");
+
+  const previous = await prisma.encounter.findUnique({
+    where: { id: parsed.data.encounterId }
+  });
+  if (!previous) throw new Error("Evolucion no encontrada");
+
+  const updated = await prisma.encounter.update({
+    where: { id: parsed.data.encounterId },
+    data: {
+      reason: parsed.data.reason,
+      plan: parsed.data.plan,
+      content: parsed.data.content?.trim() || null,
+      occurredAt: new Date(parsed.data.occurredAt),
+      problemId: parsed.data.problemId || null
+    }
+  });
+
+  await createAuditLog({
+    actorId: actor.id,
+    actorRole: actor.role,
+    action: "UPDATE_ENCOUNTER",
+    entity: "Encounter",
+    entityId: updated.id,
+    patientId: parsed.data.patientId,
+    before: previous,
+    after: { ...updated, editReason: parsed.data.editReason }
+  });
+
+  revalidatePath(`/patients/${parsed.data.patientId}`);
+  revalidatePath("/evolutions");
+  revalidatePath("/audit");
   redirect(`/patients/${parsed.data.patientId}`);
 }
 
@@ -370,6 +455,7 @@ export async function createAppointment(formData: FormData) {
 
   revalidatePath("/agenda");
   revalidatePath(`/patients/${created.patientId}`);
+  revalidatePath("/audit");
 
   const returnDateFrom = (formData.get("returnDateFrom") ?? "").toString();
   const returnDateTo = (formData.get("returnDateTo") ?? "").toString();
@@ -430,4 +516,49 @@ export async function updateAppointmentStatus(formData: FormData) {
   });
 
   revalidatePath("/agenda");
+  revalidatePath("/audit");
+}
+
+export async function createUserByAdmin(formData: FormData) {
+  const actor = await requireRole(["ADMIN"]);
+  const parsed = adminUserCreateSchema.safeParse({
+    email: formData.get("email"),
+    fullName: formData.get("fullName"),
+    role: formData.get("role"),
+    password: formData.get("password")
+  });
+  if (!parsed.success) throw new Error("Datos de usuario invalidos");
+
+  const exists = await prisma.user.findUnique({
+    where: { email: parsed.data.email }
+  });
+  if (exists) redirect("/admin/users?error=exists");
+
+  const created = await prisma.user.create({
+    data: {
+      email: parsed.data.email,
+      fullName: parsed.data.fullName,
+      role: parsed.data.role,
+      passwordHash: hashPassword(parsed.data.password),
+      isActive: true
+    }
+  });
+
+  await createAuditLog({
+    actorId: actor.id,
+    actorRole: actor.role,
+    action: "CREATE_USER",
+    entity: "User",
+    entityId: created.id,
+    after: {
+      email: created.email,
+      fullName: created.fullName,
+      role: created.role,
+      isActive: created.isActive
+    }
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath("/audit");
+  redirect("/admin/users?ok=1");
 }

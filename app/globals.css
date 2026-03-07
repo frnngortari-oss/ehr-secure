@@ -461,6 +461,26 @@ label {
   background: #edf5fd;
 }
 
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.audit-table th,
+.audit-table td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.audit-table thead th {
+  background: #f3f7fb;
+  position: sticky;
+  top: 0;
+}
+
 @media (max-width: 1024px) {
   .app-shell.with-sidebar {
     grid-template-columns: 1fr;
