@@ -2,14 +2,23 @@ import { login } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-export default async function LoginPage() {
+type SearchParams = { error?: string };
+type Props = { searchParams: Promise<SearchParams> };
+
+export default async function LoginPage({ searchParams }: Props) {
   const user = await getCurrentUser();
+  const params = await searchParams;
   if (user) redirect("/");
 
   return (
     <div className="card" style={{ maxWidth: 460, margin: "40px auto" }}>
       <h2 style={{ marginTop: 0 }}>Ingresar</h2>
       <p className="small">Acceso por rol: admin, medico o recepcion.</p>
+      {params.error === "cred" ? (
+        <p className="small" style={{ color: "#b3261e" }}>
+          Usuario o contrasena incorrectos.
+        </p>
+      ) : null}
       <form action={login}>
         <div style={{ marginBottom: 10 }}>
           <label>Usuario</label>

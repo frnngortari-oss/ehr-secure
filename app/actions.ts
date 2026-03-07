@@ -93,13 +93,13 @@ export async function login(formData: FormData) {
     username: formData.get("username"),
     password: formData.get("password")
   });
-  if (!parsed.success) throw new Error("Credenciales invalidas");
+  if (!parsed.success) redirect("/login?error=cred");
 
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.username }
   });
   if (!user || !user.isActive || !verifyPassword(parsed.data.password, user.passwordHash)) {
-    throw new Error("Usuario o contrasena incorrectos");
+    redirect("/login?error=cred");
   }
 
   await createAuditLog({
