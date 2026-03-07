@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { createAppointment, updateAppointmentStatus } from "@/app/actions";
+import { updateAppointmentStatus } from "@/app/actions";
+import AgendaHourlyBoard from "@/components/agenda-hourly-board";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -84,7 +85,7 @@ function slotForTime(time: string, hourFrom: string, hourTo: string, step: numbe
 }
 
 export default async function AgendaPage({ searchParams }: Props) {
-  const user = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
   const params = await searchParams;
   const now = new Date();
   const dateFrom = params.dateFrom ?? formatDateInput(now);
@@ -164,6 +165,15 @@ export default async function AgendaPage({ searchParams }: Props) {
     const prev = bySlot.get(key) ?? [];
     prev.push(appt);
     bySlot.set(key, prev);
+  }
+  const slotItems: Record<string, Array<{ id: string; time: string; patientLabel: string }>> = {};
+  for (const slot of slots) {
+    const items = bySlot.get(slot) ?? [];
+    slotItems[slot] = items.map((appt) => ({
+      id: appt.id,
+      time: timeKey(appt.scheduledAt),
+      patientLabel: `${appt.patient.lastName}, ${appt.patient.firstName}`
+    }));
   }
 
   const patientsOfDayMap = new Map<string, { id: string; fullName: string; nationalId: string; count: number }>();
@@ -283,54 +293,10 @@ export default async function AgendaPage({ searchParams }: Props) {
           })}
         </div>
 
-        {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO") && (
-          <>
-            <hr style={{ margin: "14px 0" }} />
-            <h4 style={{ margin: 0 }}>Nuevo turno</h4>
-            <form action={createAppointment}>
-              <input type="hidden" name="returnDateFrom" value={dateFrom} />
-              <input type="hidden" name="returnDateTo" value={dateTo} />
-              <input type="hidden" name="returnHourFrom" value={hourFrom} />
-              <input type="hidden" name="returnHourTo" value={hourTo} />
-              <input type="hidden" name="returnQ" value={params.q ?? ""} />
-              <input type="hidden" name="returnCalendarDate" value={calendarDate} />
-              <input type="hidden" name="returnSelectedTime" value={selectedTime} />
-              <input type="hidden" name="returnSlotMinutes" value={String(slotMinutes)} />
-              <div style={{ marginTop: 8 }}>
-                <label>Paciente</label>
-                <select name="patientId" required defaultValue={newPatientId}>
-                  <option value="">Seleccionar</option>
-                  {patients.map((p) => (
-                    <option key={p.id} value={p.id}>{p.lastName}, {p.firstName} ({p.nationalId})</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <label>Agenda</label>
-                <input name="agendaName" defaultValue={newAgendaName} required />
-              </div>
-              <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
-                <div>
-                  <label>Fecha</label>
-                  <input type="date" name="date" defaultValue={newDate} required />
-                </div>
-                <div>
-                  <label>Hora</label>
-                  <input type="time" name="time" defaultValue={newTime} required />
-                </div>
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <label>Modalidad</label>
-                <input name="modality" defaultValue={newModality} />
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <label>Notas</label>
-                <input name="notes" defaultValue={newNotes} />
-              </div>
-              <button style={{ marginTop: 10 }} type="submit">Guardar turno</button>
-            </form>
-          </>
-        )}
+        <hr style={{ margin: "14px 0" }} />
+        <p className="small" style={{ marginBottom: 0 }}>
+          Para cargar turno, hace click en una hora de la grilla y se abre la ventana rapida.
+        </p>
       </aside>
 
       <section className="card">
@@ -338,28 +304,35 @@ export default async function AgendaPage({ searchParams }: Props) {
           Agenda por horas ({dateFrom}) | Turnos en filtro: {appointments.length}
         </h3>
         <p className="small">Intervalo visual: {slotMinutes} minutos</p>
-        <div className="hour-grid">
-          {slots.map((slot) => {
-            const items = bySlot.get(slot) ?? [];
-            const hrefQs = new URLSearchParams(baseQs);
-            hrefQs.set("dateFrom", dateFrom);
-            hrefQs.set("dateTo", dateTo);
-            hrefQs.set("selectedTime", slot);
-            hrefQs.set("newDate", dateFrom);
-            hrefQs.set("newTime", slot);
-            return (
-              <Link key={slot} href={`/agenda?${hrefQs.toString()}`} className={slot === selectedTime ? "slot-card active" : "slot-card"}>
-                <div className="slot-time">{slot}</div>
-                <p className="small" style={{ margin: "4px 0 0" }}>Turnos: {items.length}</p>
-                {items.slice(0, 3).map((item) => (
-                  <p key={item.id} className="small" style={{ margin: "2px 0 0" }}>
-                    {timeKey(item.scheduledAt)} - {item.patient.lastName}, {item.patient.firstName}
-                  </p>
-                ))}
-              </Link>
-            );
-          })}
-        </div>
+        <AgendaHourlyBoard
+          dateFrom={dateFrom}
+          slots={slots}
+          bySlot={slotItems}
+          patients={patients.map((p) => ({
+            id: p.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            nationalId: p.nationalId
+          }))}
+          defaults={{
+            patientId: newPatientId,
+            agendaName: newAgendaName,
+            date: newDate,
+            time: newTime,
+            modality: newModality,
+            notes: newNotes
+          }}
+          returnState={{
+            dateFrom,
+            dateTo,
+            hourFrom,
+            hourTo,
+            q: params.q ?? "",
+            calendarDate,
+            selectedTime,
+            slotMinutes: String(slotMinutes)
+          }}
+        />
 
         <hr style={{ margin: "14px 0" }} />
         <h3 style={{ marginTop: 0 }}>Pacientes del dia</h3>

@@ -281,6 +281,61 @@ label {
   font-size: 14px;
 }
 
+.hour-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.hour-row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0;
+  color: inherit;
+}
+
+.hour-row:hover {
+  background: #f8fbff;
+}
+
+.hour-row.active {
+  border-color: #8bb5e3;
+  background: #edf5fd;
+}
+
+.hour-row-time {
+  border-right: 1px solid var(--border);
+  padding: 12px 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.hour-row-main {
+  padding: 10px 12px;
+}
+
+.agenda-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 25, 40, 0.42);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 12px;
+}
+
+.agenda-modal {
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -42,13 +42,27 @@ const encounterSchema = z.object({
 });
 
 const appointmentSchema = z.object({
-  patientId: z.string().uuid(),
+  patientId: z.string().uuid().optional().or(z.literal("")),
   agendaName: z.string().min(3),
   date: z.string().min(1),
   time: z.string().min(1),
   modality: z.string().optional(),
   notes: z.string().optional(),
-  clinicianId: z.string().uuid().optional().nullable().or(z.literal(""))
+  clinicianId: z.string().uuid().optional().nullable().or(z.literal("")),
+  createNewPatient: z.string().optional(),
+  newPatientFirstName: z.string().optional(),
+  newPatientLastName: z.string().optional(),
+  newPatientNationalId: z.string().optional(),
+  newPatientBirthDate: z.string().optional(),
+  newPatientSex: z.enum(["F", "M", "X"]).optional()
+});
+
+const quickPatientSchema = z.object({
+  firstName: z.string().min(2),
+  lastName: z.string().min(2),
+  nationalId: z.string().min(6),
+  birthDate: z.string().min(1),
+  sex: z.enum(["F", "M", "X"])
 });
 
 const appointmentStatusSchema = z.object({
@@ -261,14 +275,67 @@ export async function createAppointment(formData: FormData) {
     time: formData.get("time"),
     modality: formData.get("modality"),
     notes: formData.get("notes"),
-    clinicianId: formData.get("clinicianId") ?? ""
+    clinicianId: formData.get("clinicianId") ?? "",
+    createNewPatient: formData.get("createNewPatient"),
+    newPatientFirstName: formData.get("newPatientFirstName"),
+    newPatientLastName: formData.get("newPatientLastName"),
+    newPatientNationalId: formData.get("newPatientNationalId"),
+    newPatientBirthDate: formData.get("newPatientBirthDate"),
+    newPatientSex: formData.get("newPatientSex")
   });
   if (!parsed.success) throw new Error("Datos de turno invalidos");
+
+  const shouldCreatePatient = parsed.data.createNewPatient === "1" || !parsed.data.patientId;
+  let patientId = parsed.data.patientId || "";
+
+  if (shouldCreatePatient) {
+    const quickParsed = quickPatientSchema.safeParse({
+      firstName: parsed.data.newPatientFirstName,
+      lastName: parsed.data.newPatientLastName,
+      nationalId: parsed.data.newPatientNationalId,
+      birthDate: parsed.data.newPatientBirthDate,
+      sex: parsed.data.newPatientSex
+    });
+    if (!quickParsed.success) throw new Error("Datos de nuevo paciente invalidos");
+
+    const existingPatient = await prisma.patient.findUnique({
+      where: { nationalId: quickParsed.data.nationalId }
+    });
+
+    if (existingPatient) {
+      patientId = existingPatient.id;
+    } else {
+      const createdPatient = await prisma.patient.create({
+        data: {
+          firstName: quickParsed.data.firstName,
+          lastName: quickParsed.data.lastName,
+          nationalId: quickParsed.data.nationalId,
+          birthDate: new Date(quickParsed.data.birthDate),
+          sex: quickParsed.data.sex
+        }
+      });
+      patientId = createdPatient.id;
+
+      await createAuditLog({
+        actorId: actor.id,
+        actorRole: actor.role,
+        action: "CREATE_PATIENT",
+        entity: "Patient",
+        entityId: createdPatient.id,
+        patientId: createdPatient.id,
+        after: createdPatient
+      });
+
+      revalidatePath("/patients");
+    }
+  }
+
+  if (!patientId) throw new Error("Debe seleccionar o crear un paciente");
 
   const scheduledAt = new Date(`${parsed.data.date}T${parsed.data.time}:00`);
   const created = await prisma.appointment.create({
     data: {
-      patientId: parsed.data.patientId,
+      patientId,
       agendaName: parsed.data.agendaName,
       scheduledAt,
       modality: parsed.data.modality || "Ambulatorio",
@@ -309,7 +376,7 @@ export async function createAppointment(formData: FormData) {
   if (returnSelectedTime) qs.set("selectedTime", returnSelectedTime);
   if (returnSlotMinutes) qs.set("slotMinutes", returnSlotMinutes);
 
-  qs.set("newPatientId", parsed.data.patientId);
+  qs.set("newPatientId", patientId);
   qs.set("newAgendaName", parsed.data.agendaName);
   qs.set("newDate", parsed.data.date);
   qs.set("newTime", parsed.data.time);
