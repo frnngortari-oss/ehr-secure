@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createEncounter, createProblem, updatePatient } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-type Params = { params: Promise<{ id: string }> };
+type SearchParams = { problemId?: string };
+type Params = { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> };
 
 function toDateInputValue(value: Date) {
   return new Date(value).toISOString().slice(0, 10);
@@ -13,9 +15,10 @@ function toDatetimeInputValue(value: Date) {
   return new Date(value).toISOString().slice(0, 16);
 }
 
-export default async function PatientDetailPage({ params }: Params) {
+export default async function PatientDetailPage({ params, searchParams }: Params) {
   const user = await requireUser();
   const { id } = await params;
+  const query = await searchParams;
   const patient = await prisma.patient.findUnique({
     where: { id },
     include: {
@@ -25,10 +28,6 @@ export default async function PatientDetailPage({ params }: Params) {
           problem: true
         },
         orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }]
-      },
-      appointments: {
-        orderBy: { scheduledAt: "desc" },
-        take: 10
       },
       problems: {
         where: { isActive: true },
@@ -41,6 +40,16 @@ export default async function PatientDetailPage({ params }: Params) {
 
   const canEditPatient = user.role === "ADMIN" || user.role === "RECEPCION";
   const canAddEncounter = user.role === "ADMIN" || user.role === "MEDICO";
+  const selectedProblemId = query.problemId ?? "";
+  const selectedProblem = patient.problems.find((problem) => problem.id === selectedProblemId) ?? null;
+  const linkedEncounters = selectedProblem
+    ? patient.encounters.filter((encounter) => encounter.problemId === selectedProblem.id)
+    : [];
+  const encounterCountByProblem = new Map<string, number>();
+  for (const encounter of patient.encounters) {
+    if (!encounter.problemId) continue;
+    encounterCountByProblem.set(encounter.problemId, (encounterCountByProblem.get(encounter.problemId) ?? 0) + 1);
+  }
 
   return (
     <div>
@@ -105,11 +114,22 @@ export default async function PatientDetailPage({ params }: Params) {
           <h3 style={{ marginTop: 0 }}>Problemas activos</h3>
           {patient.problems.length === 0 ? <p className="small">Sin problemas cargados.</p> : null}
           {patient.problems.map((problem) => (
-            <article key={problem.id} className="card">
-              <span className="badge">{problem.category}</span>
-              <p style={{ marginTop: 8, marginBottom: 0 }}><strong>{problem.title}</strong></p>
-              <p className="small">Inicio: {new Date(problem.startedAt).toLocaleDateString("es-AR")}</p>
-            </article>
+            <Link
+              key={problem.id}
+              href={`/patients/${patient.id}?problemId=${problem.id}#linked-evolutions`}
+              className={selectedProblemId === problem.id ? "problem-item active" : "problem-item"}
+            >
+              <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <span className="badge">{problem.category}</span>
+                <span className="small">
+                  {encounterCountByProblem.get(problem.id) ?? 0} evol.
+                </span>
+              </div>
+              <p style={{ marginTop: 6, marginBottom: 0, fontWeight: 600 }}>{problem.title}</p>
+              <p className="small" style={{ marginTop: 4 }}>
+                Inicio: {new Date(problem.startedAt).toLocaleDateString("es-AR")}
+              </p>
+            </Link>
           ))}
 
           {canAddEncounter && (
@@ -128,15 +148,21 @@ export default async function PatientDetailPage({ params }: Params) {
           )}
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Turnos recientes</h3>
-          {patient.appointments.length === 0 ? <p className="small">Sin turnos cargados.</p> : null}
-          {patient.appointments.map((appt) => (
-            <article key={appt.id} className="card">
-              <p style={{ marginBottom: 4 }}><strong>{new Date(appt.scheduledAt).toLocaleString("es-AR")}</strong></p>
-              <p className="small">Agenda: {appt.agendaName}</p>
-              <p className="small">Estado: {appt.status}</p>
-              <p className="small">Modalidad: {appt.modality ?? "Ambulatorio"}</p>
+        <div id="linked-evolutions" className="card">
+          <h3 style={{ marginTop: 0 }}>
+            Evoluciones vinculadas {selectedProblem ? `- ${selectedProblem.title}` : ""}
+          </h3>
+          {!selectedProblem ? <p className="small">Selecciona un problema activo para ver sus evoluciones.</p> : null}
+          {selectedProblem && linkedEncounters.length === 0 ? (
+            <p className="small">No hay evoluciones asociadas a este problema.</p>
+          ) : null}
+          {linkedEncounters.map((encounter) => (
+            <article key={encounter.id} className="card" style={{ marginBottom: 8, padding: 10 }}>
+              <p className="small">{new Date(encounter.occurredAt).toLocaleString("es-AR")}</p>
+              <p className="small">Profesional: {encounter.author?.fullName ?? "Sin dato"}</p>
+              <p style={{ margin: "4px 0" }}><strong>Motivo:</strong> {encounter.reason}</p>
+              <p style={{ margin: "4px 0" }}><strong>Plan:</strong> {encounter.plan}</p>
+              {encounter.content ? <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{encounter.content}</p> : null}
             </article>
           ))}
         </div>

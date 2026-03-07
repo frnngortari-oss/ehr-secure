@@ -40,6 +40,11 @@ a {
 .app-shell.with-sidebar {
   display: grid;
   grid-template-columns: 260px 1fr;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.sidebar-toggle-input {
+  display: none;
 }
 
 .app-sidebar {
@@ -50,6 +55,40 @@ a {
   top: 0;
   height: 100dvh;
   overflow-y: auto;
+}
+
+.sidebar-toggle-btn {
+  border: 1px solid #ccd6e0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  background: #fff;
+  color: #24364d;
+}
+
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) {
+  grid-template-columns: 74px 1fr;
+}
+
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .app-sidebar {
+  padding: 12px 8px;
+}
+
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .brand-block h1 {
+  font-size: 14px;
+  text-align: center;
+}
+
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .brand-block .small,
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .sidebar-title,
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .sidebar-link span {
+  display: none;
+}
+
+.app-shell.with-sidebar:has(.sidebar-toggle-input:checked) .sidebar-link {
+  justify-content: center;
+  padding: 9px 6px;
 }
 
 .brand-block h1 {
@@ -408,6 +447,20 @@ label {
   padding-left: 18px;
 }
 
+.problem-item {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.problem-item.active {
+  border-color: #8bb5e3;
+  background: #edf5fd;
+}
+
 @media (max-width: 1024px) {
   .app-shell.with-sidebar {
     grid-template-columns: 1fr;
@@ -438,6 +491,10 @@ label {
 
   .sidebar-section + .sidebar-section {
     margin-top: 8px;
+  }
+
+  .sidebar-toggle-btn {
+    display: none;
   }
 
   .page-content {

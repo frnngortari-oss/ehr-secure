@@ -16,6 +16,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es">
       <body>
         <div className={user ? "app-shell with-sidebar" : "app-shell"}>
+          {user ? <input id="sidebar-toggle" className="sidebar-toggle-input" type="checkbox" /> : null}
           {user ? (
             <aside className="app-sidebar">
               <div className="brand-block">
@@ -30,6 +31,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="app-main">
             <header className="topbar">
               <div className="row">
+                {user ? (
+                  <label htmlFor="sidebar-toggle" className="sidebar-toggle-btn" title="Mostrar/ocultar menu">
+                    Menu
+                  </label>
+                ) : null}
                 <Link href="/" className="brand-mobile">EHR Secure</Link>
               </div>
               {user ? (
