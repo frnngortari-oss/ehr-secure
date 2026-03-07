@@ -68,6 +68,15 @@ function timeKey(date: Date) {
   return date.toTimeString().slice(0, 5);
 }
 
+function slotForTime(time: string, hourFrom: string, hourTo: string, step: number) {
+  const min = toMinutes(time);
+  const from = Math.min(toMinutes(hourFrom), toMinutes(hourTo));
+  const to = Math.max(toMinutes(hourFrom), toMinutes(hourTo));
+  if (min < from || min > to) return null;
+  const offset = Math.floor((min - from) / step) * step;
+  return toTimeLabel(from + offset);
+}
+
 export default async function AgendaPage({ searchParams }: Props) {
   const user = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
   const params = await searchParams;
@@ -135,15 +144,32 @@ export default async function AgendaPage({ searchParams }: Props) {
     orderBy: { scheduledAt: "asc" }
   });
 
+  const slots = buildSlots(hourFrom, hourTo, slotMinutes);
   const bySlot = new Map<string, typeof appointmentsOfDay>();
   for (const appt of appointmentsOfDay) {
-    const key = timeKey(appt.scheduledAt);
+    const key = slotForTime(timeKey(appt.scheduledAt), hourFrom, hourTo, slotMinutes);
+    if (!key) continue;
     const prev = bySlot.get(key) ?? [];
     prev.push(appt);
     bySlot.set(key, prev);
   }
 
-  const slots = buildSlots(hourFrom, hourTo, slotMinutes);
+  const patientsOfDayMap = new Map<string, { id: string; fullName: string; nationalId: string; count: number }>();
+  for (const appt of appointmentsOfDay) {
+    const id = appt.patient.id;
+    const current = patientsOfDayMap.get(id);
+    if (current) {
+      current.count += 1;
+    } else {
+      patientsOfDayMap.set(id, {
+        id,
+        fullName: `${appt.patient.lastName}, ${appt.patient.firstName}`,
+        nationalId: appt.patient.nationalId,
+        count: 1
+      });
+    }
+  }
+  const patientsOfDay = [...patientsOfDayMap.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const monthBase = new Date(`${calendarDate}T00:00:00`);
   const firstWeekDay = new Date(monthBase.getFullYear(), monthBase.getMonth(), 1).getDay();
@@ -270,15 +296,27 @@ export default async function AgendaPage({ searchParams }: Props) {
               <Link key={slot} href={`/agenda?${hrefQs.toString()}`} className={slot === selectedTime ? "slot-card active" : "slot-card"}>
                 <div className="slot-time">{slot}</div>
                 <p className="small" style={{ margin: "4px 0 0" }}>Turnos: {items.length}</p>
-                {items.slice(0, 2).map((item) => (
+                {items.slice(0, 3).map((item) => (
                   <p key={item.id} className="small" style={{ margin: "2px 0 0" }}>
-                    {item.patient.lastName}, {item.patient.firstName}
+                    {timeKey(item.scheduledAt)} - {item.patient.lastName}, {item.patient.firstName}
                   </p>
                 ))}
               </Link>
             );
           })}
         </div>
+
+        <hr style={{ margin: "14px 0" }} />
+        <h3 style={{ marginTop: 0 }}>Pacientes del dia</h3>
+        {patientsOfDay.length === 0 ? <p className="small">Sin pacientes para el dia seleccionado.</p> : null}
+        {patientsOfDay.map((p) => (
+          <Link key={p.id} href={`/patients/${p.id}`}>
+            <article className="card">
+              <strong>{p.fullName}</strong>
+              <p className="small">DNI: {p.nationalId} | Turnos: {p.count}</p>
+            </article>
+          </Link>
+        ))}
 
         <hr style={{ margin: "14px 0" }} />
         <h3 style={{ marginTop: 0 }}>Listado detallado</h3>
@@ -290,7 +328,10 @@ export default async function AgendaPage({ searchParams }: Props) {
               <span className="badge" style={{ background: "#f1f5f9", color: statusColor(appt.status) }}>{appt.status}</span>
             </div>
             <p style={{ marginBottom: 6 }}>
-              <strong>Paciente:</strong> {appt.patient.lastName}, {appt.patient.firstName} ({appt.patient.nationalId})
+              <strong>Paciente:</strong>{" "}
+              <Link href={`/patients/${appt.patient.id}`} style={{ color: "#0d4f91", textDecoration: "underline" }}>
+                {appt.patient.lastName}, {appt.patient.firstName} ({appt.patient.nationalId})
+              </Link>
             </p>
             <p className="small">Modalidad: {appt.modality ?? "Ambulatorio"} | Profesional: {appt.clinician?.fullName ?? "Sin asignar"}</p>
             <div className="row">

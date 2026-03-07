@@ -167,12 +167,12 @@ export default async function PatientDetailPage({ params }: Params) {
               <input name="reason" required />
             </div>
             <div style={{ marginTop: 8 }}>
-              <label>Plan</label>
-              <textarea name="plan" rows={2} required />
-            </div>
-            <div style={{ marginTop: 8 }}>
               <label>Texto libre de evolucion</label>
               <textarea name="content" rows={8} placeholder="Ingrese aqui la evolucion..." />
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label>Plan</label>
+              <textarea name="plan" rows={2} required />
             </div>
             <button style={{ marginTop: 10 }} type="submit">Guardar evolucion</button>
           </form>
