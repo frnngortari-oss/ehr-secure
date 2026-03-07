@@ -285,7 +285,7 @@ export async function createAppointment(formData: FormData) {
   });
   if (!parsed.success) throw new Error("Datos de turno invalidos");
 
-  const shouldCreatePatient = parsed.data.createNewPatient === "1" || !parsed.data.patientId;
+  const shouldCreatePatient = parsed.data.createNewPatient === "1";
   let patientId = parsed.data.patientId || "";
 
   if (shouldCreatePatient) {
@@ -330,7 +330,7 @@ export async function createAppointment(formData: FormData) {
     }
   }
 
-  if (!patientId) throw new Error("Debe seleccionar o crear un paciente");
+  if (!patientId) throw new Error("Debe seleccionar un paciente o activar crear nuevo paciente");
 
   const scheduledAt = new Date(`${parsed.data.date}T${parsed.data.time}:00`);
   const created = await prisma.appointment.create({
@@ -383,7 +383,7 @@ export async function createAppointment(formData: FormData) {
   if (parsed.data.modality?.trim()) qs.set("newModality", parsed.data.modality);
   if (parsed.data.notes?.trim()) qs.set("newNotes", parsed.data.notes);
 
-  redirect(`/agenda${qs.toString() ? `?${qs.toString()}` : ""}`);
+  redirect(`/agenda${qs.toString() ? `?${qs.toString()}` : ""}#agenda-main`);
 }
 
 export async function updateAppointmentStatus(formData: FormData) {

@@ -93,8 +93,7 @@ export default async function AgendaPage({ searchParams }: Props) {
   const hourFrom = params.hourFrom ?? "08:00";
   const hourTo = params.hourTo ?? "20:00";
   const calendarDate = params.calendarDate ?? dateFrom;
-  const slotMinutesRaw = Number.parseInt(params.slotMinutes ?? "30", 10);
-  const slotMinutes = Number.isFinite(slotMinutesRaw) ? Math.min(120, Math.max(5, slotMinutesRaw)) : 30;
+  const slotMinutes = 60;
   const selectedTime = params.selectedTime ?? params.newTime ?? "10:00";
   const newPatientId = params.newPatientId ?? "";
   const newAgendaName = params.newAgendaName ?? "Consulta Clinica";
@@ -223,14 +222,14 @@ export default async function AgendaPage({ searchParams }: Props) {
 
   const patients = await prisma.patient.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take: 100
+    take: 1000
   });
 
   return (
     <div className="split-layout">
       <aside className="card">
         <h3 style={{ marginTop: 0 }}>Agenda del dia</h3>
-        <form method="GET">
+        <form method="GET" action="/agenda#agenda-main">
           <input type="hidden" name="calendarDate" value={calendarDate} />
           <input type="hidden" name="selectedTime" value={selectedTime} />
           <input type="hidden" name="newPatientId" value={newPatientId} />
@@ -247,8 +246,10 @@ export default async function AgendaPage({ searchParams }: Props) {
           <input type="time" name="hourFrom" defaultValue={hourFrom} />
           <label>Hora hasta</label>
           <input type="time" name="hourTo" defaultValue={hourTo} />
-          <label>Intervalo grilla (min)</label>
-          <input type="number" name="slotMinutes" min={5} max={120} step={5} defaultValue={slotMinutes} />
+          <input type="hidden" name="slotMinutes" value={String(slotMinutes)} />
+          <p className="small" style={{ marginTop: 8, marginBottom: 8 }}>
+            Intervalo de grilla estandar: 60 minutos.
+          </p>
           <label>Buscar paciente</label>
           <input name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido o DNI" />
           <div className="row" style={{ marginTop: 10 }}>
@@ -259,11 +260,11 @@ export default async function AgendaPage({ searchParams }: Props) {
         <hr style={{ margin: "14px 0" }} />
         <h4 style={{ marginTop: 0 }}>Calendario mensual</h4>
         <div className="calendar-head">
-          <Link href={`/agenda?${prevMonthQs.toString()}`} className="calendar-nav" aria-label="Mes anterior">
+          <Link href={`/agenda?${prevMonthQs.toString()}#agenda-main`} scroll={false} className="calendar-nav" aria-label="Mes anterior">
             {"<"}
           </Link>
           <strong style={{ textTransform: "capitalize" }}>{monthLabel}</strong>
-          <Link href={`/agenda?${nextMonthQs.toString()}`} className="calendar-nav" aria-label="Mes siguiente">
+          <Link href={`/agenda?${nextMonthQs.toString()}#agenda-main`} scroll={false} className="calendar-nav" aria-label="Mes siguiente">
             {">"}
           </Link>
         </div>
@@ -284,7 +285,8 @@ export default async function AgendaPage({ searchParams }: Props) {
               <Link
                 key={dayKey}
                 className={dayKey === dateFrom && dayKey === dateTo ? "calendar-day active" : "calendar-day"}
-                href={`/agenda?${hrefQs.toString()}`}
+                href={`/agenda?${hrefQs.toString()}#agenda-main`}
+                scroll={false}
               >
                 <span>{day}</span>
                 <small>{dayCount}</small>
@@ -299,7 +301,7 @@ export default async function AgendaPage({ searchParams }: Props) {
         </p>
       </aside>
 
-      <section className="card">
+      <section id="agenda-main" className="card">
         <h3 style={{ marginTop: 0 }}>
           Agenda por horas ({dateFrom}) | Turnos en filtro: {appointments.length}
         </h3>
