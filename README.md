@@ -1,47 +1,60 @@
 # EHR Secure (Next.js + Prisma + PostgreSQL)
 
-Sistema base de historias clinicas con:
-- Autenticacion por roles (`ADMIN`, `MEDICO`, `RECEPCION`)
-- Alta, edicion y listado de pacientes
-- Busqueda avanzada de pacientes
-- Agenda del dia con filtros y estados de turno
-- Carga de evoluciones clinicas con problema asociado
-- Auditoria de cambios persistida en base de datos
+Sistema de historias clinicas con:
+- autenticacion por roles (`ADMIN`, `MEDICO`, `RECEPCION`)
+- pacientes, agenda del dia, evoluciones y auditoria
+- backup e importacion desde UI admin
+- modo offline con PostgreSQL local
 
-## 1) Requisitos
+## Requisitos
 - Node.js 20+
-- PostgreSQL (Neon recomendado)
+- PostgreSQL (Neon para nube, opcional PostgreSQL local para offline)
+- PostgreSQL client tools (`pg_dump`, `pg_restore`) para sincronizacion offline
 
-## 2) Instalacion
+## Instalacion
 ```bash
 npm install
 cp .env.example .env
 ```
 
-Configurar `.env`:
-- `DATABASE_URL=...`
-- `AUTH_SECRET=...` (minimo 16 caracteres)
+Configura en `.env`:
+- `DATABASE_URL` (Neon pooler)
+- `DIRECT_URL` (Neon direct)
+- `LOCAL_DATABASE_URL` (PostgreSQL local)
+- `AUTH_SECRET` (minimo 16 chars)
 
-## 3) Base de datos
+## Base de datos
 ```bash
 npm run prisma:generate
-npm run prisma:migrate -- --name auth_roles_audit
+npm run prisma:migrate -- --name init
 npm run prisma:seed
 ```
 
-## 4) Ejecutar
+## Ejecutar
 ```bash
 npm run dev
 ```
 
-Abrir: `http://localhost:3000`
-
-## 5) Usuarios demo (seed)
-- `admin@ehr.local` / `Admin123!`
-- `medico@ehr.local` / `Medico123!`
+## Usuarios seed
+- `Fgortariadmin` / `Qwerty"852963`
+- `Fgortari` / `Qwerty"852963`
 - `recepcion@ehr.local` / `Recepcion123!`
 
-## 6) Permisos
-- `ADMIN`: acceso total + vista de auditoria (`/audit`)
-- `MEDICO`: ver pacientes y cargar evoluciones
-- `RECEPCION`: alta/edicion de pacientes
+## Backup desde web
+Ruta admin: `/admin/offline`
+
+- `Descargar backup JSON`: baja una copia completa
+- `Importar backup`: restaura una copia (reemplaza toda la base)
+
+## Offline en tu PC
+1. Sincronizar Neon -> local:
+```bash
+npm run offline:sync
+```
+
+2. Levantar app usando base local:
+```bash
+npm run offline:dev
+```
+
+Cuando vuelvas a tener internet, vuelve a usar `npm run dev` normal.

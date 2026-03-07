@@ -2,7 +2,9 @@
 .next
 .env
 .env.local
+.env.localdb
 dist
 coverage
 *.log
 .vercel
+backups

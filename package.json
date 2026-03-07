@@ -10,7 +10,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "offline:sync": "powershell -ExecutionPolicy Bypass -File scripts/offline-sync.ps1",
+    "offline:dev": "powershell -ExecutionPolicy Bypass -File scripts/start-offline.ps1"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
