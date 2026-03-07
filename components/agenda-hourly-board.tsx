@@ -9,18 +9,11 @@ type HourItem = {
   patientLabel: string;
 };
 
-type PatientOption = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  nationalId: string;
-};
-
 type Props = {
   dateFrom: string;
   slots: string[];
   bySlot: Record<string, HourItem[]>;
-  patients: PatientOption[];
+  defaultPatient: { id: string; label: string } | null;
   defaults: {
     patientId: string;
     agendaName: string;
@@ -41,10 +34,21 @@ type Props = {
   };
 };
 
-export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, patients, defaults, returnState }: Props) {
+type SearchPatient = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationalId: string;
+};
+
+export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, defaultPatient, defaults, returnState }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(returnState.selectedTime || defaults.time || slots[0] || "08:00");
   const [createNewPatient, setCreateNewPatient] = useState(!defaults.patientId);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchPatient[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [draft, setDraft] = useState({
     patientId: defaults.patientId,
     agendaName: defaults.agendaName,
@@ -58,6 +62,40 @@ export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, patients, d
     newPatientBirthDate: "",
     newPatientSex: "F"
   });
+
+  async function runSearch() {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchError("Ingresar al menos 2 caracteres para buscar");
+      setSearchResults([]);
+      return;
+    }
+    setSearchError("");
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/patients/search?q=${encodeURIComponent(q)}&limit=25`, { cache: "no-store" });
+      if (!response.ok) {
+        setSearchError("No se pudo buscar pacientes");
+        setSearchResults([]);
+      } else {
+        const data = (await response.json()) as { patients?: SearchPatient[] };
+        setSearchResults(data.patients ?? []);
+      }
+    } catch {
+      setSearchError("Error de red al buscar pacientes");
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  const selectOptions = [
+    ...(defaultPatient ? [{ id: defaultPatient.id, label: defaultPatient.label }] : []),
+    ...searchResults.map((p) => ({
+      id: p.id,
+      label: `${p.lastName}, ${p.firstName} (${p.nationalId})`
+    }))
+  ].filter((option, index, arr) => arr.findIndex((other) => other.id === option.id) === index);
 
   function openForSlot(slot: string) {
     setSelectedSlot(slot);
@@ -123,20 +161,43 @@ export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, patients, d
               <input type="hidden" name="returnCalendarDate" value={returnState.calendarDate} />
               <input type="hidden" name="returnSelectedTime" value={selectedSlot} />
               <input type="hidden" name="returnSlotMinutes" value={returnState.slotMinutes} />
+              <input type="hidden" name="patientId" value={draft.patientId} />
 
               <div style={{ marginBottom: 8 }}>
-                <label>Paciente existente</label>
+                <label>Buscar paciente existente</label>
+                <div className="row">
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Apellido, nombre o DNI"
+                    disabled={createNewPatient}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        if (!createNewPatient) runSearch();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    style={{ width: "auto" }}
+                    onClick={runSearch}
+                    disabled={createNewPatient || isSearching}
+                  >
+                    {isSearching ? "Buscando..." : "Buscar"}
+                  </button>
+                </div>
+                {searchError ? <p className="small" style={{ color: "#b3261e", marginTop: 6 }}>{searchError}</p> : null}
                 <select
-                  name="patientId"
                   value={draft.patientId}
                   onChange={(event) => setDraft((prev) => ({ ...prev, patientId: event.target.value }))}
                   disabled={createNewPatient}
                   required={!createNewPatient}
                 >
                   <option value="">Seleccionar</option>
-                  {patients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.lastName}, {patient.firstName} ({patient.nationalId})
+                  {selectOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

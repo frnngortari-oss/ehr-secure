@@ -104,57 +104,64 @@ export default async function AgendaPage({ searchParams }: Props) {
 
   const start = new Date(`${dateFrom}T${hourFrom}:00`);
   const end = new Date(`${dateTo}T${hourTo}:59`);
-
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      scheduledAt: { gte: start, lte: end },
-      patient: params.q
-        ? {
-            OR: [
-              { firstName: { contains: params.q, mode: "insensitive" } },
-              { lastName: { contains: params.q, mode: "insensitive" } },
-              { nationalId: { contains: params.q } }
-            ]
-          }
-        : undefined
-    },
-    include: {
-      patient: true,
-      clinician: { select: { fullName: true } }
-    },
-    orderBy: [{ scheduledAt: "asc" }]
-  });
-
   const month = monthBounds(calendarDate);
-  const monthAppointments = await prisma.appointment.findMany({
-    where: { scheduledAt: { gte: month.start, lte: month.end } },
-    select: { scheduledAt: true }
-  });
+  const selectedDayStart = new Date(`${dateFrom}T00:00:00`);
+  const selectedDayEnd = new Date(`${dateFrom}T23:59:59`);
+
+  const selectedPatientPromise = newPatientId
+    ? prisma.patient.findUnique({
+        where: { id: newPatientId },
+        select: { id: true, firstName: true, lastName: true, nationalId: true }
+      })
+    : Promise.resolve(null);
+  const [appointments, monthAppointments, appointmentsOfDay, selectedPatient] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        scheduledAt: { gte: start, lte: end },
+        patient: params.q
+          ? {
+              OR: [
+                { firstName: { contains: params.q, mode: "insensitive" } },
+                { lastName: { contains: params.q, mode: "insensitive" } },
+                { nationalId: { contains: params.q } }
+              ]
+            }
+          : undefined
+      },
+      include: {
+        patient: true,
+        clinician: { select: { fullName: true } }
+      },
+      orderBy: [{ scheduledAt: "asc" }]
+    }),
+    prisma.appointment.findMany({
+      where: { scheduledAt: { gte: month.start, lte: month.end } },
+      select: { scheduledAt: true }
+    }),
+    prisma.appointment.findMany({
+      where: {
+        scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
+        patient: params.q
+          ? {
+              OR: [
+                { firstName: { contains: params.q, mode: "insensitive" } },
+                { lastName: { contains: params.q, mode: "insensitive" } },
+                { nationalId: { contains: params.q } }
+              ]
+            }
+          : undefined
+      },
+      include: { patient: true },
+      orderBy: { scheduledAt: "asc" }
+    }),
+    selectedPatientPromise
+  ]);
 
   const byDay = new Map<string, number>();
   for (const appt of monthAppointments) {
     const key = toDateKey(appt.scheduledAt);
     byDay.set(key, (byDay.get(key) ?? 0) + 1);
   }
-
-  const selectedDayStart = new Date(`${dateFrom}T00:00:00`);
-  const selectedDayEnd = new Date(`${dateFrom}T23:59:59`);
-  const appointmentsOfDay = await prisma.appointment.findMany({
-    where: {
-      scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
-      patient: params.q
-        ? {
-            OR: [
-              { firstName: { contains: params.q, mode: "insensitive" } },
-              { lastName: { contains: params.q, mode: "insensitive" } },
-              { nationalId: { contains: params.q } }
-            ]
-          }
-        : undefined
-    },
-    include: { patient: true },
-    orderBy: { scheduledAt: "asc" }
-  });
 
   const slots = buildSlots(hourFrom, hourTo, slotMinutes);
   const bySlot = new Map<string, typeof appointmentsOfDay>();
@@ -219,11 +226,6 @@ export default async function AgendaPage({ searchParams }: Props) {
   prevMonthQs.set("calendarDate", prevMonthKey);
   const nextMonthQs = new URLSearchParams(baseQs);
   nextMonthQs.set("calendarDate", nextMonthKey);
-
-  const patients = await prisma.patient.findMany({
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take: 1000
-  });
 
   return (
     <div className="split-layout">
@@ -310,12 +312,14 @@ export default async function AgendaPage({ searchParams }: Props) {
           dateFrom={dateFrom}
           slots={slots}
           bySlot={slotItems}
-          patients={patients.map((p) => ({
-            id: p.id,
-            firstName: p.firstName,
-            lastName: p.lastName,
-            nationalId: p.nationalId
-          }))}
+          defaultPatient={
+            selectedPatient
+              ? {
+                  id: selectedPatient.id,
+                  label: `${selectedPatient.lastName}, ${selectedPatient.firstName} (${selectedPatient.nationalId})`
+                }
+              : null
+          }
           defaults={{
             patientId: newPatientId,
             agendaName: newAgendaName,
