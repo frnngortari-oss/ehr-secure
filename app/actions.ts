@@ -268,20 +268,34 @@ export async function createEncounter(formData: FormData) {
 
 export async function createAppointment(formData: FormData) {
   const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  const patientIdInput = (formData.get("patientId") ?? "").toString();
+  const agendaNameInput = (formData.get("agendaName") ?? "").toString();
+  const dateInput = (formData.get("date") ?? "").toString();
+  const timeInput = (formData.get("time") ?? "").toString();
+  const modalityInput = (formData.get("modality") ?? "").toString();
+  const notesInput = (formData.get("notes") ?? "").toString();
+  const clinicianIdInput = (formData.get("clinicianId") ?? "").toString();
+  const createNewPatientInput = (formData.get("createNewPatient") ?? "").toString();
+  const newPatientFirstNameInput = (formData.get("newPatientFirstName") ?? "").toString();
+  const newPatientLastNameInput = (formData.get("newPatientLastName") ?? "").toString();
+  const newPatientNationalIdInput = (formData.get("newPatientNationalId") ?? "").toString();
+  const newPatientBirthDateInput = (formData.get("newPatientBirthDate") ?? "").toString();
+  const newPatientSexInput = (formData.get("newPatientSex") ?? "").toString();
+
   const parsed = appointmentSchema.safeParse({
-    patientId: formData.get("patientId"),
-    agendaName: formData.get("agendaName"),
-    date: formData.get("date"),
-    time: formData.get("time"),
-    modality: formData.get("modality"),
-    notes: formData.get("notes"),
-    clinicianId: formData.get("clinicianId") ?? "",
-    createNewPatient: formData.get("createNewPatient"),
-    newPatientFirstName: formData.get("newPatientFirstName"),
-    newPatientLastName: formData.get("newPatientLastName"),
-    newPatientNationalId: formData.get("newPatientNationalId"),
-    newPatientBirthDate: formData.get("newPatientBirthDate"),
-    newPatientSex: formData.get("newPatientSex")
+    patientId: patientIdInput,
+    agendaName: agendaNameInput,
+    date: dateInput,
+    time: timeInput,
+    modality: modalityInput,
+    notes: notesInput,
+    clinicianId: clinicianIdInput,
+    createNewPatient: createNewPatientInput || undefined,
+    newPatientFirstName: newPatientFirstNameInput || undefined,
+    newPatientLastName: newPatientLastNameInput || undefined,
+    newPatientNationalId: newPatientNationalIdInput || undefined,
+    newPatientBirthDate: newPatientBirthDateInput || undefined,
+    newPatientSex: newPatientSexInput ? (newPatientSexInput as "F" | "M" | "X") : undefined
   });
   if (!parsed.success) throw new Error("Datos de turno invalidos");
 
