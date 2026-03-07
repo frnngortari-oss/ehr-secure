@@ -289,7 +289,34 @@ export async function createAppointment(formData: FormData) {
 
   revalidatePath("/agenda");
   revalidatePath(`/patients/${created.patientId}`);
-  redirect("/agenda");
+
+  const returnDateFrom = (formData.get("returnDateFrom") ?? "").toString();
+  const returnDateTo = (formData.get("returnDateTo") ?? "").toString();
+  const returnHourFrom = (formData.get("returnHourFrom") ?? "").toString();
+  const returnHourTo = (formData.get("returnHourTo") ?? "").toString();
+  const returnQ = (formData.get("returnQ") ?? "").toString();
+  const returnCalendarDate = (formData.get("returnCalendarDate") ?? "").toString();
+  const returnSelectedTime = (formData.get("returnSelectedTime") ?? "").toString();
+  const returnSlotMinutes = (formData.get("returnSlotMinutes") ?? "").toString();
+
+  const qs = new URLSearchParams();
+  if (returnDateFrom) qs.set("dateFrom", returnDateFrom);
+  if (returnDateTo) qs.set("dateTo", returnDateTo);
+  if (returnHourFrom) qs.set("hourFrom", returnHourFrom);
+  if (returnHourTo) qs.set("hourTo", returnHourTo);
+  if (returnQ) qs.set("q", returnQ);
+  if (returnCalendarDate) qs.set("calendarDate", returnCalendarDate);
+  if (returnSelectedTime) qs.set("selectedTime", returnSelectedTime);
+  if (returnSlotMinutes) qs.set("slotMinutes", returnSlotMinutes);
+
+  qs.set("newPatientId", parsed.data.patientId);
+  qs.set("newAgendaName", parsed.data.agendaName);
+  qs.set("newDate", parsed.data.date);
+  qs.set("newTime", parsed.data.time);
+  if (parsed.data.modality?.trim()) qs.set("newModality", parsed.data.modality);
+  if (parsed.data.notes?.trim()) qs.set("newNotes", parsed.data.notes);
+
+  redirect(`/agenda${qs.toString() ? `?${qs.toString()}` : ""}`);
 }
 
 export async function updateAppointmentStatus(formData: FormData) {

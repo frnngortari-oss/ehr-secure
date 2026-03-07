@@ -25,7 +25,6 @@ const sections: Array<{ title: string; items: Item[] }> = [
     title: "Clinica",
     items: [
       { href: "/patients", label: "Pacientes", icon: "patients" },
-      { href: "/patients/search", label: "Busqueda", icon: "search" },
       { href: "/agenda", label: "Agenda", icon: "agenda" },
       { href: "/evolutions", label: "Evoluciones", icon: "evolutions" },
       { href: "/patients/new", label: "Nuevo paciente", icon: "new", roles: ["ADMIN", "RECEPCION", "MEDICO"] }

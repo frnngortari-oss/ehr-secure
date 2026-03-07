@@ -12,6 +12,12 @@ type SearchParams = {
   calendarDate?: string;
   selectedTime?: string;
   slotMinutes?: string;
+  newPatientId?: string;
+  newAgendaName?: string;
+  newDate?: string;
+  newTime?: string;
+  newModality?: string;
+  newNotes?: string;
 };
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -88,7 +94,13 @@ export default async function AgendaPage({ searchParams }: Props) {
   const calendarDate = params.calendarDate ?? dateFrom;
   const slotMinutesRaw = Number.parseInt(params.slotMinutes ?? "30", 10);
   const slotMinutes = Number.isFinite(slotMinutesRaw) ? Math.min(120, Math.max(5, slotMinutesRaw)) : 30;
-  const selectedTime = params.selectedTime ?? "10:00";
+  const selectedTime = params.selectedTime ?? params.newTime ?? "10:00";
+  const newPatientId = params.newPatientId ?? "";
+  const newAgendaName = params.newAgendaName ?? "Consulta Clinica";
+  const newDate = params.newDate ?? dateFrom;
+  const newTime = params.newTime ?? selectedTime;
+  const newModality = params.newModality ?? "Ambulatorio";
+  const newNotes = params.newNotes ?? "";
 
   const start = new Date(`${dateFrom}T${hourFrom}:00`);
   const end = new Date(`${dateTo}T${hourTo}:59`);
@@ -174,6 +186,9 @@ export default async function AgendaPage({ searchParams }: Props) {
   const monthBase = new Date(`${calendarDate}T00:00:00`);
   const firstWeekDay = new Date(monthBase.getFullYear(), monthBase.getMonth(), 1).getDay();
   const daysInMonth = new Date(monthBase.getFullYear(), monthBase.getMonth() + 1, 0).getDate();
+  const prevMonthKey = toDateKey(new Date(monthBase.getFullYear(), monthBase.getMonth() - 1, 1));
+  const nextMonthKey = toDateKey(new Date(monthBase.getFullYear(), monthBase.getMonth() + 1, 1));
+  const monthLabel = monthBase.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 
   const baseQs = new URLSearchParams();
   if (params.q) baseQs.set("q", params.q);
@@ -183,6 +198,18 @@ export default async function AgendaPage({ searchParams }: Props) {
   baseQs.set("calendarDate", calendarDate);
   baseQs.set("dateFrom", dateFrom);
   baseQs.set("dateTo", dateTo);
+  baseQs.set("selectedTime", selectedTime);
+  baseQs.set("newAgendaName", newAgendaName);
+  baseQs.set("newDate", newDate);
+  baseQs.set("newTime", newTime);
+  baseQs.set("newModality", newModality);
+  if (newPatientId) baseQs.set("newPatientId", newPatientId);
+  if (newNotes) baseQs.set("newNotes", newNotes);
+
+  const prevMonthQs = new URLSearchParams(baseQs);
+  prevMonthQs.set("calendarDate", prevMonthKey);
+  const nextMonthQs = new URLSearchParams(baseQs);
+  nextMonthQs.set("calendarDate", nextMonthKey);
 
   const patients = await prisma.patient.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -195,6 +222,13 @@ export default async function AgendaPage({ searchParams }: Props) {
         <h3 style={{ marginTop: 0 }}>Agenda del dia</h3>
         <form method="GET">
           <input type="hidden" name="calendarDate" value={calendarDate} />
+          <input type="hidden" name="selectedTime" value={selectedTime} />
+          <input type="hidden" name="newPatientId" value={newPatientId} />
+          <input type="hidden" name="newAgendaName" value={newAgendaName} />
+          <input type="hidden" name="newDate" value={newDate} />
+          <input type="hidden" name="newTime" value={newTime} />
+          <input type="hidden" name="newModality" value={newModality} />
+          <input type="hidden" name="newNotes" value={newNotes} />
           <label>Desde</label>
           <input type="date" name="dateFrom" defaultValue={dateFrom} />
           <label>Hasta</label>
@@ -214,6 +248,15 @@ export default async function AgendaPage({ searchParams }: Props) {
 
         <hr style={{ margin: "14px 0" }} />
         <h4 style={{ marginTop: 0 }}>Calendario mensual</h4>
+        <div className="calendar-head">
+          <Link href={`/agenda?${prevMonthQs.toString()}`} className="calendar-nav" aria-label="Mes anterior">
+            {"<"}
+          </Link>
+          <strong style={{ textTransform: "capitalize" }}>{monthLabel}</strong>
+          <Link href={`/agenda?${nextMonthQs.toString()}`} className="calendar-nav" aria-label="Mes siguiente">
+            {">"}
+          </Link>
+        </div>
         <div className="calendar-grid">
           {Array.from({ length: firstWeekDay }).map((_, idx) => (
             <span key={`empty-${idx}`} />
@@ -225,6 +268,8 @@ export default async function AgendaPage({ searchParams }: Props) {
             const hrefQs = new URLSearchParams(baseQs);
             hrefQs.set("dateFrom", dayKey);
             hrefQs.set("dateTo", dayKey);
+            hrefQs.set("calendarDate", dayKey);
+            hrefQs.set("newDate", dayKey);
             return (
               <Link
                 key={dayKey}
@@ -243,9 +288,17 @@ export default async function AgendaPage({ searchParams }: Props) {
             <hr style={{ margin: "14px 0" }} />
             <h4 style={{ margin: 0 }}>Nuevo turno</h4>
             <form action={createAppointment}>
+              <input type="hidden" name="returnDateFrom" value={dateFrom} />
+              <input type="hidden" name="returnDateTo" value={dateTo} />
+              <input type="hidden" name="returnHourFrom" value={hourFrom} />
+              <input type="hidden" name="returnHourTo" value={hourTo} />
+              <input type="hidden" name="returnQ" value={params.q ?? ""} />
+              <input type="hidden" name="returnCalendarDate" value={calendarDate} />
+              <input type="hidden" name="returnSelectedTime" value={selectedTime} />
+              <input type="hidden" name="returnSlotMinutes" value={String(slotMinutes)} />
               <div style={{ marginTop: 8 }}>
                 <label>Paciente</label>
-                <select name="patientId" required>
+                <select name="patientId" required defaultValue={newPatientId}>
                   <option value="">Seleccionar</option>
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>{p.lastName}, {p.firstName} ({p.nationalId})</option>
@@ -254,25 +307,25 @@ export default async function AgendaPage({ searchParams }: Props) {
               </div>
               <div style={{ marginTop: 8 }}>
                 <label>Agenda</label>
-                <input name="agendaName" defaultValue="Consulta Clinica" required />
+                <input name="agendaName" defaultValue={newAgendaName} required />
               </div>
               <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
                 <div>
                   <label>Fecha</label>
-                  <input type="date" name="date" defaultValue={dateFrom} required />
+                  <input type="date" name="date" defaultValue={newDate} required />
                 </div>
                 <div>
                   <label>Hora</label>
-                  <input type="time" name="time" defaultValue={selectedTime} required />
+                  <input type="time" name="time" defaultValue={newTime} required />
                 </div>
               </div>
               <div style={{ marginTop: 8 }}>
                 <label>Modalidad</label>
-                <input name="modality" defaultValue="Ambulatorio" />
+                <input name="modality" defaultValue={newModality} />
               </div>
               <div style={{ marginTop: 8 }}>
                 <label>Notas</label>
-                <input name="notes" />
+                <input name="notes" defaultValue={newNotes} />
               </div>
               <button style={{ marginTop: 10 }} type="submit">Guardar turno</button>
             </form>
@@ -292,6 +345,8 @@ export default async function AgendaPage({ searchParams }: Props) {
             hrefQs.set("dateFrom", dateFrom);
             hrefQs.set("dateTo", dateTo);
             hrefQs.set("selectedTime", slot);
+            hrefQs.set("newDate", dateFrom);
+            hrefQs.set("newTime", slot);
             return (
               <Link key={slot} href={`/agenda?${hrefQs.toString()}`} className={slot === selectedTime ? "slot-card active" : "slot-card"}>
                 <div className="slot-time">{slot}</div>

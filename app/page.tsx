@@ -46,7 +46,7 @@ export default async function HomePage() {
         <div className="row" style={{ marginTop: 10 }}>
           <Link href="/kpi"><button style={{ width: "auto" }}>Ver KPIs</button></Link>
           <Link href="/agenda"><button style={{ width: "auto" }}>Agenda del dia</button></Link>
-          <Link href="/patients/search"><button style={{ width: "auto" }}>Buscar pacientes</button></Link>
+          <Link href="/patients"><button style={{ width: "auto" }}>Buscar pacientes</button></Link>
           <Link href="/evolutions"><button style={{ width: "auto" }}>Evoluciones</button></Link>
         </div>
       </div>
