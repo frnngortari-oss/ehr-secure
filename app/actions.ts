@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { clearSession, requireRole, setSession } from "@/lib/auth";
 import { verifyPassword } from "@/lib/security";
 import { createAuditLog } from "@/lib/audit";
-import { importBackupPayload } from "@/lib/backup";
 
 const loginSchema = z.object({
   username: z.string().min(3),
@@ -322,35 +321,4 @@ export async function updateAppointmentStatus(formData: FormData) {
   });
 
   revalidatePath("/agenda");
-}
-
-export async function importBackup(formData: FormData) {
-  await requireRole(["ADMIN"]);
-
-  const confirmation = String(formData.get("confirmation") ?? "");
-  if (confirmation !== "REEMPLAZAR") {
-    redirect("/admin/offline?error=confirm");
-  }
-
-  const file = formData.get("backupFile");
-  if (!(file instanceof File)) {
-    redirect("/admin/offline?error=file");
-  }
-
-  const text = await file.text();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    redirect("/admin/offline?error=json");
-  }
-
-  await importBackupPayload(parsed);
-
-  revalidatePath("/");
-  revalidatePath("/patients");
-  revalidatePath("/agenda");
-  revalidatePath("/evolutions");
-  revalidatePath("/audit");
-  redirect("/admin/offline?ok=imported");
 }

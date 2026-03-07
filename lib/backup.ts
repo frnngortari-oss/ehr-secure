@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 export type BackupPayload = {
   version: 1;
@@ -79,11 +78,6 @@ export type BackupPayload = {
 
 function toIso(value: Date) {
   return new Date(value).toISOString();
-}
-
-function toJsonInput(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
-  if (value === null || value === undefined) return Prisma.JsonNull;
-  return value as Prisma.InputJsonValue;
 }
 
 export async function exportBackupPayload(): Promise<BackupPayload> {
@@ -171,129 +165,4 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
       }))
     }
   };
-}
-
-function assertBackupPayload(value: unknown): asserts value is BackupPayload {
-  if (!value || typeof value !== "object") throw new Error("Backup invalido");
-  const root = value as Record<string, unknown>;
-  if (root.version !== 1) throw new Error("Version de backup no soportada");
-  const data = root.data as Record<string, unknown> | undefined;
-  if (!data) throw new Error("Formato de backup invalido");
-  const requiredArrays = ["users", "patients", "problems", "appointments", "encounters", "auditLogs"];
-  for (const key of requiredArrays) {
-    if (!Array.isArray(data[key])) throw new Error(`Falta arreglo ${key}`);
-  }
-}
-
-export async function importBackupPayload(value: unknown) {
-  assertBackupPayload(value);
-  const backup = value;
-
-  await prisma.$transaction(async (tx) => {
-    await tx.auditLog.deleteMany();
-    await tx.encounter.deleteMany();
-    await tx.appointment.deleteMany();
-    await tx.problem.deleteMany();
-    await tx.patient.deleteMany();
-    await tx.user.deleteMany();
-
-    for (const row of backup.data.users) {
-      await tx.user.create({
-        data: {
-          id: row.id,
-          email: row.email,
-          fullName: row.fullName,
-          role: row.role,
-          passwordHash: row.passwordHash,
-          isActive: row.isActive,
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt)
-        }
-      });
-    }
-
-    for (const row of backup.data.patients) {
-      await tx.patient.create({
-        data: {
-          id: row.id,
-          firstName: row.firstName,
-          lastName: row.lastName,
-          nationalId: row.nationalId,
-          birthDate: new Date(row.birthDate),
-          sex: row.sex,
-          email: row.email,
-          phone: row.phone,
-          address: row.address,
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt)
-        }
-      });
-    }
-
-    for (const row of backup.data.problems) {
-      await tx.problem.create({
-        data: {
-          id: row.id,
-          patientId: row.patientId,
-          createdById: row.createdById,
-          title: row.title,
-          category: row.category,
-          isActive: row.isActive,
-          startedAt: new Date(row.startedAt),
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt)
-        }
-      });
-    }
-
-    for (const row of backup.data.appointments) {
-      await tx.appointment.create({
-        data: {
-          id: row.id,
-          patientId: row.patientId,
-          clinicianId: row.clinicianId,
-          agendaName: row.agendaName,
-          scheduledAt: new Date(row.scheduledAt),
-          status: row.status,
-          modality: row.modality,
-          notes: row.notes,
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt)
-        }
-      });
-    }
-
-    for (const row of backup.data.encounters) {
-      await tx.encounter.create({
-        data: {
-          id: row.id,
-          patientId: row.patientId,
-          reason: row.reason,
-          assessment: row.assessment,
-          plan: row.plan,
-          occurredAt: new Date(row.occurredAt),
-          content: row.content,
-          problemId: row.problemId,
-          authorId: row.authorId,
-          createdAt: new Date(row.createdAt)
-        }
-      });
-    }
-
-    for (const row of backup.data.auditLogs) {
-      await tx.auditLog.create({
-        data: {
-          id: row.id,
-          actorId: row.actorId,
-          action: row.action,
-          entity: row.entity,
-          entityId: row.entityId,
-          patientId: row.patientId,
-          before: toJsonInput(row.before),
-          after: toJsonInput(row.after),
-          createdAt: new Date(row.createdAt)
-        }
-      });
-    }
-  });
 }
