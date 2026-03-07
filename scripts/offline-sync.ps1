@@ -43,7 +43,11 @@ if ([string]::IsNullOrWhiteSpace($LocalUrl)) {
 $pgDump = Get-Command pg_dump -ErrorAction SilentlyContinue
 $pgRestore = Get-Command pg_restore -ErrorAction SilentlyContinue
 if (!$pgDump -or !$pgRestore) {
-  throw "Faltan pg_dump/pg_restore. Instala PostgreSQL client tools en tu PC."
+  Write-Host "pg_dump/pg_restore no encontrados. Usando fallback por Prisma..."
+  $env:DIRECT_URL = $NeonUrl
+  $env:LOCAL_DATABASE_URL = $LocalUrl
+  npx tsx scripts/offline-sync.ts
+  exit $LASTEXITCODE
 }
 
 if (!(Test-Path $BackupDir)) {
