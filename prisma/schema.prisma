@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Sex {
+  F
+  M
+  X
+}
+
+enum Role {
+  ADMIN
+  MEDICO
+  RECEPCION
+}
+
+enum AppointmentStatus {
+  PENDIENTE
+  ATENDIDO
+  AUSENTE
+  CANCELADO
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  fullName     String
+  role         Role
+  passwordHash String
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+  appointments Appointment[]
+  problems     Problem[]
+  encounters   Encounter[]
+}
+
+model Patient {
+  id         String      @id @default(uuid())
+  firstName  String
+  lastName   String
+  nationalId String      @unique
+  birthDate  DateTime
+  sex        Sex
+  email      String?
+  phone      String?
+  address    String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  encounters Encounter[]
+  auditLogs  AuditLog[]
+  appointments Appointment[]
+  problems   Problem[]
+
+  @@index([lastName, firstName])
+}
+
+model Encounter {
+  id         String   @id @default(uuid())
+  patientId  String
+  reason     String
+  assessment String
+  plan       String
+  occurredAt DateTime @default(now())
+  content    String?
+  problemId  String?
+  authorId   String?
+  createdAt  DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  problem Problem? @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  author  User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
+  @@index([occurredAt])
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String
+  clinicianId String?
+  agendaName  String
+  scheduledAt DateTime
+  status      AppointmentStatus @default(PENDIENTE)
+  modality    String?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinician User?   @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledAt, status])
+  @@index([patientId, scheduledAt])
+}
+
+model Problem {
+  id          String      @id @default(uuid())
+  patientId   String
+  createdById String?
+  title       String
+  category    String      @default("Problema")
+  isActive    Boolean     @default(true)
+  startedAt   DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  patient    Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  encounters Encounter[]
+
+  @@index([patientId, isActive])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  patientId String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  actor   User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([patientId, createdAt])
+}
