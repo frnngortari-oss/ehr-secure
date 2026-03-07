@@ -1,15 +1,60 @@
 :root {
   --bg: #edf2f7;
+  --bg-gradient: radial-gradient(circle at 10% 10%, #ffffff 0, #edf2f7 50%, #e8eef5 100%);
   --surface: #ffffff;
   --surface-soft: #f8fafc;
   --border: #d7e0ea;
   --text: #132235;
   --muted: #546375;
   --primary: #1f6fba;
+  --topbar-bg: rgba(255, 255, 255, 0.8);
+  --brand-color: #27405c;
   --sidebar: #f6f8fb;
   --success: #198754;
   --warning: #d9822b;
   --danger: #b3261e;
+}
+
+html[data-theme="oceano"] {
+  --bg: #e8f4fb;
+  --bg-gradient: linear-gradient(140deg, #f0fbff 0%, #e8f4fb 55%, #dff0fa 100%);
+  --surface: #ffffff;
+  --surface-soft: #f5fbff;
+  --border: #c5dbe9;
+  --text: #132c3f;
+  --muted: #3e627c;
+  --primary: #0a86b8;
+  --topbar-bg: rgba(236, 248, 255, 0.86);
+  --brand-color: #145579;
+  --sidebar: #eef7fc;
+}
+
+html[data-theme="bosque"] {
+  --bg: #edf4ef;
+  --bg-gradient: linear-gradient(150deg, #f6fbf7 0%, #edf4ef 55%, #e4efe8 100%);
+  --surface: #ffffff;
+  --surface-soft: #f5faf6;
+  --border: #ccdccc;
+  --text: #183124;
+  --muted: #4a6556;
+  --primary: #2f8f5b;
+  --topbar-bg: rgba(244, 251, 246, 0.88);
+  --brand-color: #1d6240;
+  --sidebar: #f0f8f3;
+}
+
+html[data-theme="arena"] {
+  --bg: #f5f0e8;
+  --bg-gradient: linear-gradient(145deg, #fffaf1 0%, #f5f0e8 55%, #f0e8db 100%);
+  --surface: #fffdf9;
+  --surface-soft: #faf6ef;
+  --border: #e0d2bf;
+  --text: #3c2a19;
+  --muted: #6a5540;
+  --primary: #b36c2e;
+  --topbar-bg: rgba(255, 250, 242, 0.9);
+  --brand-color: #8a4f1f;
+  --sidebar: #faf3e7;
 }
 
 * {
@@ -24,7 +69,7 @@ body {
 
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: radial-gradient(circle at 10% 10%, #ffffff 0, #edf2f7 50%, #e8eef5 100%);
+  background: var(--bg-gradient);
   color: var(--text);
 }
 
@@ -163,13 +208,23 @@ a {
   justify-content: space-between;
   padding: 14px 22px;
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--topbar-bg);
   backdrop-filter: blur(4px);
 }
 
 .brand-mobile {
   font-weight: 700;
-  color: #27405c;
+  color: var(--brand-color);
+}
+
+.theme-select {
+  width: auto;
+  min-width: 110px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
 }
 
 .page-content {

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions";
 import SidebarNav from "@/components/sidebar-nav";
+import ThemeSelector from "@/components/theme-selector";
 
 export const metadata = {
-  title: "EHR Secure",
+  title: "Historia Clinica Virtual",
   description: "Sistema base de historias clinicas"
 };
 
@@ -20,7 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {user ? (
             <aside className="app-sidebar">
               <div className="brand-block">
-                <h1>EHR Secure</h1>
+                <h1>Historia Clinica Virtual</h1>
                 <p className="small">{user.fullName}</p>
                 <p className="small">Rol: {user.role}</p>
               </div>
@@ -36,12 +37,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     Menu
                   </label>
                 ) : null}
-                <Link href="/" className="brand-mobile">EHR Secure</Link>
+                <Link href="/" className="brand-mobile">Historia Clinica Virtual</Link>
               </div>
               {user ? (
-                <form action={logout}>
-                  <button style={{ width: "auto", padding: "6px 12px" }} type="submit">Salir</button>
-                </form>
+                <div className="row">
+                  <ThemeSelector />
+                  <form action={logout}>
+                    <button style={{ width: "auto", padding: "6px 12px" }} type="submit">Salir</button>
+                  </form>
+                </div>
               ) : (
                 <Link href="/login">Ingresar</Link>
               )}
