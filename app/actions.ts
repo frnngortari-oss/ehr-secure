@@ -48,7 +48,7 @@ const appointmentSchema = z.object({
   time: z.string().min(1),
   modality: z.string().optional(),
   notes: z.string().optional(),
-  clinicianId: z.string().uuid().optional().or(z.literal(""))
+  clinicianId: z.string().uuid().optional().nullable().or(z.literal(""))
 });
 
 const appointmentStatusSchema = z.object({
@@ -261,7 +261,7 @@ export async function createAppointment(formData: FormData) {
     time: formData.get("time"),
     modality: formData.get("modality"),
     notes: formData.get("notes"),
-    clinicianId: formData.get("clinicianId")
+    clinicianId: formData.get("clinicianId") ?? ""
   });
   if (!parsed.success) throw new Error("Datos de turno invalidos");
 
