@@ -2,6 +2,7 @@ import "./globals.css";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions";
+import SidebarNav from "@/components/sidebar-nav";
 
 export const metadata = {
   title: "EHR Secure",
@@ -14,32 +15,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es">
       <body>
-        <main>
-          <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-            <h1 style={{ margin: 0 }}>EHR Secure</h1>
-            <nav className="row" style={{ gap: 16 }}>
+        <div className={user ? "app-shell with-sidebar" : "app-shell"}>
+          {user ? (
+            <aside className="app-sidebar">
+              <div className="brand-block">
+                <h1>EHR Secure</h1>
+                <p className="small">{user.fullName}</p>
+                <p className="small">Rol: {user.role}</p>
+              </div>
+              <SidebarNav role={user.role} />
+            </aside>
+          ) : null}
+
+          <div className="app-main">
+            <header className="topbar">
+              <div className="row">
+                <Link href="/" className="brand-mobile">EHR Secure</Link>
+              </div>
               {user ? (
-                <>
-                  <Link href="/">Inicio</Link>
-                  <Link href="/patients">Pacientes</Link>
-                  <Link href="/patients/search">Busqueda</Link>
-                  <Link href="/agenda">Agenda</Link>
-                  <Link href="/evolutions">Evoluciones</Link>
-                  {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO") && <Link href="/patients/new">Nuevo paciente</Link>}
-                  {user.role === "ADMIN" && <Link href="/audit">Auditoria</Link>}
-                  {user.role === "ADMIN" && <Link href="/admin/offline">Backup</Link>}
-                  <span className="small">{user.fullName} ({user.role})</span>
-                  <form action={logout}>
-                    <button style={{ width: "auto", padding: "6px 10px" }} type="submit">Salir</button>
-                  </form>
-                </>
+                <form action={logout}>
+                  <button style={{ width: "auto", padding: "6px 12px" }} type="submit">Salir</button>
+                </form>
               ) : (
                 <Link href="/login">Ingresar</Link>
               )}
-            </nav>
+            </header>
+            <main className="page-content">{children}</main>
           </div>
-          {children}
-        </main>
+        </div>
       </body>
     </html>
   );

@@ -100,7 +100,7 @@ export default async function PatientDetailPage({ params }: Params) {
         </div>
       )}
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", alignItems: "start" }}>
+      <div className="two-col">
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Problemas activos</h3>
           {patient.problems.length === 0 ? <p className="small">Sin problemas cargados.</p> : null}

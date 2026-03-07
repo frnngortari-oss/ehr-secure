@@ -36,7 +36,7 @@ export default async function PatientSearchPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "320px 1fr", alignItems: "start" }}>
+    <div className="split-layout">
       <section className="card">
         <h3 style={{ marginTop: 0 }}>Busqueda de pacientes</h3>
         <form method="GET">

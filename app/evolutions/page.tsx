@@ -54,7 +54,7 @@ export default async function EvolutionsPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "300px 1fr", alignItems: "start" }}>
+    <div className="split-layout">
       <aside className="card">
         <h3 style={{ marginTop: 0 }}>Evoluciones</h3>
         <form method="GET">

@@ -3,6 +3,9 @@
 Sistema de historias clinicas con:
 - autenticacion por roles (`ADMIN`, `MEDICO`, `RECEPCION`)
 - pacientes, agenda del dia, evoluciones y auditoria
+- agenda con calendario mensual + grilla por hora para cargar turnos
+- dashboard KPI (`/kpi`) con metricas de turnos, problemas y motivos de consulta
+- menu lateral con iconos y vista responsive para celular/tablet
 - descarga de backup desde panel admin
 
 ## Requisitos

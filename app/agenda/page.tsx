@@ -10,6 +10,7 @@ type SearchParams = {
   hourTo?: string;
   q?: string;
   calendarDate?: string;
+  selectedTime?: string;
 };
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -39,15 +40,43 @@ function toDateKey(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+function toMinutes(time: string) {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function toTimeLabel(minutes: number) {
+  const h = String(Math.floor(minutes / 60)).padStart(2, "0");
+  const m = String(minutes % 60).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function buildSlots(hourFrom: string, hourTo: string, step = 20) {
+  const from = toMinutes(hourFrom);
+  const to = toMinutes(hourTo);
+  const start = Math.min(from, to);
+  const end = Math.max(from, to);
+  const slots: string[] = [];
+  for (let min = start; min <= end; min += step) {
+    slots.push(toTimeLabel(min));
+  }
+  return slots;
+}
+
+function timeKey(date: Date) {
+  return date.toTimeString().slice(0, 5);
+}
+
 export default async function AgendaPage({ searchParams }: Props) {
   const user = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
   const params = await searchParams;
   const now = new Date();
   const dateFrom = params.dateFrom ?? formatDateInput(now);
   const dateTo = params.dateTo ?? formatDateInput(now);
-  const hourFrom = params.hourFrom ?? "00:00";
-  const hourTo = params.hourTo ?? "23:59";
+  const hourFrom = params.hourFrom ?? "08:00";
+  const hourTo = params.hourTo ?? "20:00";
   const calendarDate = params.calendarDate ?? dateFrom;
+  const selectedTime = params.selectedTime ?? "10:00";
 
   const start = new Date(`${dateFrom}T${hourFrom}:00`);
   const end = new Date(`${dateTo}T${hourTo}:59`);
@@ -84,15 +113,46 @@ export default async function AgendaPage({ searchParams }: Props) {
     byDay.set(key, (byDay.get(key) ?? 0) + 1);
   }
 
+  const selectedDayStart = new Date(`${dateFrom}T00:00:00`);
+  const selectedDayEnd = new Date(`${dateFrom}T23:59:59`);
+  const appointmentsOfDay = await prisma.appointment.findMany({
+    where: {
+      scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
+      patient: params.q
+        ? {
+            OR: [
+              { firstName: { contains: params.q, mode: "insensitive" } },
+              { lastName: { contains: params.q, mode: "insensitive" } },
+              { nationalId: { contains: params.q } }
+            ]
+          }
+        : undefined
+    },
+    include: { patient: true },
+    orderBy: { scheduledAt: "asc" }
+  });
+
+  const bySlot = new Map<string, typeof appointmentsOfDay>();
+  for (const appt of appointmentsOfDay) {
+    const key = timeKey(appt.scheduledAt);
+    const prev = bySlot.get(key) ?? [];
+    prev.push(appt);
+    bySlot.set(key, prev);
+  }
+
+  const slots = buildSlots(hourFrom, hourTo, 20);
+
   const monthBase = new Date(`${calendarDate}T00:00:00`);
   const firstWeekDay = new Date(monthBase.getFullYear(), monthBase.getMonth(), 1).getDay();
   const daysInMonth = new Date(monthBase.getFullYear(), monthBase.getMonth() + 1, 0).getDate();
 
-  const qs = new URLSearchParams();
-  if (params.q) qs.set("q", params.q);
-  qs.set("hourFrom", hourFrom);
-  qs.set("hourTo", hourTo);
-  qs.set("calendarDate", calendarDate);
+  const baseQs = new URLSearchParams();
+  if (params.q) baseQs.set("q", params.q);
+  baseQs.set("hourFrom", hourFrom);
+  baseQs.set("hourTo", hourTo);
+  baseQs.set("calendarDate", calendarDate);
+  baseQs.set("dateFrom", dateFrom);
+  baseQs.set("dateTo", dateTo);
 
   const patients = await prisma.patient.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -100,7 +160,7 @@ export default async function AgendaPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "320px 1fr", alignItems: "start" }}>
+    <div className="split-layout">
       <aside className="card">
         <h3 style={{ marginTop: 0 }}>Agenda del dia</h3>
         <form method="GET">
@@ -110,9 +170,9 @@ export default async function AgendaPage({ searchParams }: Props) {
           <label>Hasta</label>
           <input type="date" name="dateTo" defaultValue={dateTo} />
           <label>Hora desde</label>
-          <input type="time" name="hourFrom" defaultValue={hourFrom} />
+          <input type="time" name="hourFrom" defaultValue={hourFrom} step={1200} />
           <label>Hora hasta</label>
-          <input type="time" name="hourTo" defaultValue={hourTo} />
+          <input type="time" name="hourTo" defaultValue={hourTo} step={1200} />
           <label>Buscar paciente</label>
           <input name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido o DNI" />
           <div className="row" style={{ marginTop: 10 }}>
@@ -121,7 +181,7 @@ export default async function AgendaPage({ searchParams }: Props) {
         </form>
 
         <hr style={{ margin: "14px 0" }} />
-        <h4 style={{ marginTop: 0 }}>Calendario</h4>
+        <h4 style={{ marginTop: 0 }}>Calendario mensual</h4>
         <div className="calendar-grid">
           {Array.from({ length: firstWeekDay }).map((_, idx) => (
             <span key={`empty-${idx}`} />
@@ -130,7 +190,7 @@ export default async function AgendaPage({ searchParams }: Props) {
             const day = idx + 1;
             const dayKey = toDateKey(new Date(monthBase.getFullYear(), monthBase.getMonth(), day));
             const dayCount = byDay.get(dayKey) ?? 0;
-            const hrefQs = new URLSearchParams(qs);
+            const hrefQs = new URLSearchParams(baseQs);
             hrefQs.set("dateFrom", dayKey);
             hrefQs.set("dateTo", dayKey);
             return (
@@ -171,7 +231,7 @@ export default async function AgendaPage({ searchParams }: Props) {
                 </div>
                 <div>
                   <label>Hora</label>
-                  <input type="time" name="time" defaultValue="10:00" required />
+                  <input type="time" name="time" defaultValue={selectedTime} step={1200} required />
                 </div>
               </div>
               <div style={{ marginTop: 8 }}>
@@ -189,7 +249,32 @@ export default async function AgendaPage({ searchParams }: Props) {
       </aside>
 
       <section className="card">
-        <h3 style={{ marginTop: 0 }}>Turnos ({appointments.length})</h3>
+        <h3 style={{ marginTop: 0 }}>
+          Agenda por horas ({dateFrom}) | Turnos en filtro: {appointments.length}
+        </h3>
+        <div className="hour-grid">
+          {slots.map((slot) => {
+            const items = bySlot.get(slot) ?? [];
+            const hrefQs = new URLSearchParams(baseQs);
+            hrefQs.set("dateFrom", dateFrom);
+            hrefQs.set("dateTo", dateTo);
+            hrefQs.set("selectedTime", slot);
+            return (
+              <Link key={slot} href={`/agenda?${hrefQs.toString()}`} className={slot === selectedTime ? "slot-card active" : "slot-card"}>
+                <div className="slot-time">{slot}</div>
+                <p className="small" style={{ margin: "4px 0 0" }}>Turnos: {items.length}</p>
+                {items.slice(0, 2).map((item) => (
+                  <p key={item.id} className="small" style={{ margin: "2px 0 0" }}>
+                    {item.patient.lastName}, {item.patient.firstName}
+                  </p>
+                ))}
+              </Link>
+            );
+          })}
+        </div>
+
+        <hr style={{ margin: "14px 0" }} />
+        <h3 style={{ marginTop: 0 }}>Listado detallado</h3>
         {appointments.length === 0 ? <p className="small">Sin turnos en el filtro seleccionado.</p> : null}
         {appointments.map((appt) => (
           <article key={appt.id} className="card">
