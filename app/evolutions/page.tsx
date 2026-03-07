@@ -6,6 +6,7 @@ type SearchParams = {
   patient?: string;
   dateFrom?: string;
   dateTo?: string;
+  day?: string;
   category?: string;
 };
 
@@ -19,12 +20,14 @@ function toDate(value?: string, end?: boolean) {
 export default async function EvolutionsPage({ searchParams }: Props) {
   await requireRole(["ADMIN", "MEDICO", "RECEPCION"]);
   const params = await searchParams;
+  const dayStart = params.day ? toDate(params.day) : undefined;
+  const dayEnd = params.day ? toDate(params.day, true) : undefined;
 
   const evolutions = await prisma.encounter.findMany({
     where: {
       occurredAt: {
-        gte: toDate(params.dateFrom),
-        lte: toDate(params.dateTo, true)
+        gte: dayStart ?? toDate(params.dateFrom),
+        lte: dayEnd ?? toDate(params.dateTo, true)
       },
       patient: params.patient
         ? {
@@ -63,6 +66,13 @@ export default async function EvolutionsPage({ searchParams }: Props) {
             <input name="patient" defaultValue={params.patient ?? ""} placeholder="Nombre o DNI" />
           </div>
           <div style={{ marginBottom: 8 }}>
+            <label>Dia exacto</label>
+            <input type="date" name="day" defaultValue={params.day ?? ""} />
+            <p className="small" style={{ marginTop: 4 }}>
+              Si completas este campo, ignora Desde/Hasta.
+            </p>
+          </div>
+          <div style={{ marginBottom: 8 }}>
             <label>Desde</label>
             <input type="date" name="dateFrom" defaultValue={params.dateFrom ?? ""} />
           </div>
@@ -80,6 +90,9 @@ export default async function EvolutionsPage({ searchParams }: Props) {
             </select>
           </div>
           <button type="submit">Filtrar</button>
+          <a href="/evolutions" className="small" style={{ marginLeft: 10, textDecoration: "underline", color: "#0d4f91" }}>
+            Limpiar
+          </a>
         </form>
       </aside>
 
