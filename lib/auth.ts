@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createSessionToken, verifySessionToken } from "@/lib/security";
 
 export const SESSION_COOKIE = "ehr_session";
-const SESSION_MAX_AGE = 60 * 60 * 12;
+const SESSION_MAX_AGE = 60 * 60 * 3;
 
 export const roleValues = ["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"] as const;
 export type Role = (typeof roleValues)[number];
