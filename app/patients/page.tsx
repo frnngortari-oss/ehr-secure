@@ -1,13 +1,10 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 
 type SearchParams = {
-  lastName?: string;
-  firstName?: string;
-  nationalId?: string;
-  birthDate?: string;
-  patientId?: string;
+  q?: string;
 };
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -15,19 +12,34 @@ type Props = { searchParams: Promise<SearchParams> };
 export default async function PatientsPage({ searchParams }: Props) {
   const user = await requireUser();
   const params = await searchParams;
+  const q = (params.q ?? "").trim();
+  const terms = q.split(/\s+/).filter(Boolean);
+  const numericQ = q.replace(/\D/g, "");
 
-  const where = {
-    lastName: params.lastName ? { contains: params.lastName, mode: "insensitive" as const } : undefined,
-    firstName: params.firstName ? { contains: params.firstName, mode: "insensitive" as const } : undefined,
-    nationalId: params.nationalId ? { contains: params.nationalId } : undefined,
-    id: params.patientId ? { contains: params.patientId } : undefined,
-    birthDate: params.birthDate
-      ? {
-          gte: new Date(`${params.birthDate}T00:00:00`),
-          lt: new Date(`${params.birthDate}T23:59:59`)
-        }
-      : undefined
-  };
+  let where: Prisma.PatientWhereInput = {};
+  if (q.length > 0) {
+    const orFilters: Prisma.PatientWhereInput[] = [
+      { firstName: { contains: q, mode: "insensitive" } },
+      { lastName: { contains: q, mode: "insensitive" } }
+    ];
+
+    if (numericQ.length > 0) {
+      orFilters.push({ nationalId: { contains: numericQ } });
+    }
+
+    if (terms.length > 1) {
+      orFilters.push({
+        AND: terms.map((term) => ({
+          OR: [
+            { firstName: { contains: term, mode: "insensitive" } },
+            { lastName: { contains: term, mode: "insensitive" } }
+          ]
+        }))
+      });
+    }
+
+    where = { OR: orFilters };
+  }
 
   const patients = await prisma.patient.findMany({
     where,
@@ -42,24 +54,12 @@ export default async function PatientsPage({ searchParams }: Props) {
         <h3 style={{ marginTop: 0 }}>Busqueda de pacientes</h3>
         <form method="GET">
           <div style={{ marginBottom: 8 }}>
-            <label>Apellido</label>
-            <input name="lastName" defaultValue={params.lastName ?? ""} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>Nombres</label>
-            <input name="firstName" defaultValue={params.firstName ?? ""} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>Nro documento</label>
-            <input name="nationalId" defaultValue={params.nationalId ?? ""} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>Fecha de nacimiento</label>
-            <input type="date" name="birthDate" defaultValue={params.birthDate ?? ""} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label>Nro de ID</label>
-            <input name="patientId" defaultValue={params.patientId ?? ""} />
+            <label>Buscar por DNI o nombre</label>
+            <input
+              name="q"
+              defaultValue={params.q ?? ""}
+              placeholder="Ej: 30111222 o Laura Gomez"
+            />
           </div>
           <div className="row">
             <button type="submit">Buscar</button>
