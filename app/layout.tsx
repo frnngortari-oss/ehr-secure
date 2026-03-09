@@ -1,12 +1,31 @@
 import "./globals.css";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions";
 import SidebarNav from "@/components/sidebar-nav";
+import PwaRegister from "@/components/pwa-register";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Historia Clinica Virtual",
-  description: "Sistema base de historias clinicas"
+  description: "Sistema base de historias clinicas",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-512.svg", type: "image/svg+xml" }
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.svg", type: "image/svg+xml" }]
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Historia Clinica Virtual"
+  }
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a86b8"
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" data-theme="oceano">
       <body>
+        <PwaRegister />
         <div className={user ? "app-shell with-sidebar" : "app-shell"}>
           {user ? <input id="sidebar-toggle" className="sidebar-toggle-input" type="checkbox" /> : null}
           {user ? (

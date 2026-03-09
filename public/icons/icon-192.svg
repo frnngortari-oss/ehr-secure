@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="g1" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a86b8"/>
+      <stop offset="100%" stop-color="#145579"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="176" height="176" rx="36" fill="url(#g1)"/>
+  <rect x="36" y="54" width="120" height="84" rx="12" fill="#ffffff" opacity="0.95"/>
+  <path d="M76 82h40v8H76zm0 20h40v8H76z" fill="#0a86b8"/>
+  <path d="M96 66v60M66 96h60" stroke="#0a86b8" stroke-width="8" stroke-linecap="round"/>
+  <text x="96" y="162" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#e8f4fb">HCV</text>
+</svg>
