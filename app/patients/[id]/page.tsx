@@ -10,6 +10,7 @@ type SearchParams = {
   evoAuthorId?: string;
   evoSpecialty?: string;
   evoProblemId?: string;
+  error?: string;
 };
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> };
@@ -72,6 +73,12 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     user.role === "TERAPISTA_OCUPACIONAL";
 
   const selectedSection = query.section === "documents" ? "documents" : "evolutions";
+  const errorCode = query.error ?? "";
+  const errorText: Record<string, string> = {
+    evolution_invalid: "No se pudo guardar la evolucion. Revisa motivo y fecha.",
+    evolution_edit_invalid: "No se pudo guardar la edicion. Revisa los campos obligatorios.",
+    evolution_date: "La fecha/hora no es valida."
+  };
   const selectedProblemCardId = query.problemId ?? "";
   const evoAuthorId = query.evoAuthorId ?? "";
   const evoSpecialty = query.evoSpecialty ?? "";
@@ -136,6 +143,12 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
   return (
     <div>
+      {errorCode && errorText[errorCode] ? (
+        <div className="card" style={{ borderColor: "#ef4444", background: "#fff1f2" }}>
+          <p style={{ margin: 0, color: "#9f1239", fontWeight: 600 }}>{errorText[errorCode]}</p>
+        </div>
+      ) : null}
+
       <div className="card">
         <h2 style={{ marginTop: 0 }}>{patient.lastName}, {patient.firstName}</h2>
         <p className="small">DNI: {patient.nationalId}</p>

@@ -33,9 +33,9 @@ const problemSchema = z.object({
 
 const encounterSchema = z.object({
   patientId: z.string().uuid(),
-  reason: z.string().min(3),
+  reason: z.string().trim().min(1),
   assessment: z.string().optional(),
-  plan: z.string().min(3),
+  plan: z.string().optional().or(z.literal("")),
   occurredAt: z.string().optional(),
   content: z.string().optional(),
   problemId: z.string().uuid().optional().or(z.literal(""))
@@ -44,12 +44,12 @@ const encounterSchema = z.object({
 const encounterUpdateSchema = z.object({
   encounterId: z.string().uuid(),
   patientId: z.string().uuid(),
-  reason: z.string().min(3),
-  plan: z.string().min(3),
+  reason: z.string().trim().min(1),
+  plan: z.string().optional().or(z.literal("")),
   content: z.string().optional(),
   occurredAt: z.string().min(1),
   problemId: z.string().uuid().optional().or(z.literal("")),
-  editReason: z.string().min(3)
+  editReason: z.string().trim().min(1)
 });
 
 const uploadDocumentSchema = z.object({
@@ -275,8 +275,9 @@ export async function createProblem(formData: FormData) {
 
 export async function createEncounter(formData: FormData) {
   const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const patientIdInput = (formData.get("patientId") ?? "").toString();
   const parsed = encounterSchema.safeParse({
-    patientId: formData.get("patientId"),
+    patientId: patientIdInput,
     reason: formData.get("reason"),
     assessment: formData.get("assessment"),
     plan: formData.get("plan"),
@@ -284,18 +285,27 @@ export async function createEncounter(formData: FormData) {
     content: formData.get("content"),
     problemId: formData.get("problemId")
   });
-  if (!parsed.success) throw new Error("Datos de evolucion invalidos");
+  if (!parsed.success) {
+    console.error("createEncounter validation failed", parsed.error.flatten());
+    if (patientIdInput) redirect(`/patients/${patientIdInput}?error=evolution_invalid`);
+    throw new Error("Datos de evolucion invalidos");
+  }
 
-  const occurredAt = parsed.data.occurredAt ? new Date(parsed.data.occurredAt) : new Date();
+  const occurredAt = parsed.data.occurredAt?.trim() ? new Date(parsed.data.occurredAt) : new Date();
+  if (Number.isNaN(occurredAt.getTime())) {
+    redirect(`/patients/${parsed.data.patientId}?error=evolution_date`);
+  }
+  const reason = parsed.data.reason.trim();
+  const plan = parsed.data.plan?.trim() || "Sin plan consignado";
   const assessment = parsed.data.assessment?.trim() || "Sin evaluacion";
-  const content = parsed.data.content?.trim() || `Motivo: ${parsed.data.reason}\n\nPlan: ${parsed.data.plan}`;
+  const content = parsed.data.content?.trim() || `Motivo: ${reason}\n\nPlan: ${plan}`;
 
   const encounter = await prisma.encounter.create({
     data: {
       patientId: parsed.data.patientId,
-      reason: parsed.data.reason,
+      reason,
       assessment,
-      plan: parsed.data.plan,
+      plan,
       occurredAt,
       content,
       problemId: parsed.data.problemId || null,
@@ -323,9 +333,10 @@ export async function createEncounter(formData: FormData) {
 
 export async function updateEncounter(formData: FormData) {
   const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const patientIdInput = (formData.get("patientId") ?? "").toString();
   const parsed = encounterUpdateSchema.safeParse({
     encounterId: formData.get("encounterId"),
-    patientId: formData.get("patientId"),
+    patientId: patientIdInput,
     reason: formData.get("reason"),
     plan: formData.get("plan"),
     content: formData.get("content"),
@@ -333,20 +344,31 @@ export async function updateEncounter(formData: FormData) {
     problemId: formData.get("problemId"),
     editReason: formData.get("editReason")
   });
-  if (!parsed.success) throw new Error("Datos de edicion de evolucion invalidos");
+  if (!parsed.success) {
+    console.error("updateEncounter validation failed", parsed.error.flatten());
+    if (patientIdInput) redirect(`/patients/${patientIdInput}?error=evolution_edit_invalid`);
+    throw new Error("Datos de edicion de evolucion invalidos");
+  }
 
   const previous = await prisma.encounter.findUnique({
     where: { id: parsed.data.encounterId }
   });
   if (!previous) throw new Error("Evolucion no encontrada");
 
+  const occurredAt = new Date(parsed.data.occurredAt);
+  if (Number.isNaN(occurredAt.getTime())) {
+    redirect(`/patients/${parsed.data.patientId}?error=evolution_date`);
+  }
+  const reason = parsed.data.reason.trim();
+  const plan = parsed.data.plan?.trim() || "Sin plan consignado";
+
   const updated = await prisma.encounter.update({
     where: { id: parsed.data.encounterId },
     data: {
-      reason: parsed.data.reason,
-      plan: parsed.data.plan,
+      reason,
+      plan,
       content: parsed.data.content?.trim() || null,
-      occurredAt: new Date(parsed.data.occurredAt),
+      occurredAt,
       problemId: parsed.data.problemId || null
     }
   });
