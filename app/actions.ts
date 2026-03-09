@@ -279,17 +279,26 @@ export async function createProblem(formData: FormData) {
 export async function createEncounter(formData: FormData) {
   const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const patientIdInput = (formData.get("patientId") ?? "").toString();
+  const reasonInput = (formData.get("reason") ?? "").toString();
+  const assessmentInput = (formData.get("assessment") ?? "").toString();
+  const planInput = (formData.get("plan") ?? "").toString();
+  const occurredAtInput = (formData.get("occurredAt") ?? "").toString();
+  const contentInput = (formData.get("content") ?? "").toString();
+  const problemIdInput = (formData.get("problemId") ?? "").toString();
+  const createNewProblemInput = (formData.get("createNewProblem") ?? "").toString();
+  const newProblemTitleInput = (formData.get("newProblemTitle") ?? "").toString();
+  const newProblemCategoryInput = (formData.get("newProblemCategory") ?? "").toString();
   const parsed = encounterSchema.safeParse({
     patientId: patientIdInput,
-    reason: formData.get("reason"),
-    assessment: formData.get("assessment"),
-    plan: formData.get("plan"),
-    occurredAt: formData.get("occurredAt"),
-    content: formData.get("content"),
-    problemId: formData.get("problemId"),
-    createNewProblem: formData.get("createNewProblem"),
-    newProblemTitle: formData.get("newProblemTitle"),
-    newProblemCategory: formData.get("newProblemCategory")
+    reason: reasonInput,
+    assessment: assessmentInput,
+    plan: planInput,
+    occurredAt: occurredAtInput,
+    content: contentInput,
+    problemId: problemIdInput,
+    createNewProblem: createNewProblemInput,
+    newProblemTitle: newProblemTitleInput,
+    newProblemCategory: newProblemCategoryInput
   });
   if (!parsed.success) {
     console.error("createEncounter validation failed", parsed.error.flatten());
