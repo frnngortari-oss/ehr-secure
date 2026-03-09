@@ -10,7 +10,6 @@ export type BackupPayload = {
       fullName: string;
       role: "ADMIN" | "MEDICO" | "PSICOLOGO" | "FONOAUDIOLOGO" | "KINESIOLOGO" | "TERAPISTA_OCUPACIONAL" | "RECEPCION";
       medicalSpecialty: string | null;
-      passwordHash: string;
       isActive: boolean;
       createdAt: string;
       updatedAt: string;
@@ -116,7 +115,6 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
         fullName: r.fullName,
         role: r.role,
         medicalSpecialty: r.medicalSpecialty,
-        passwordHash: r.passwordHash,
         isActive: r.isActive,
         createdAt: toIso(r.createdAt),
         updatedAt: toIso(r.updatedAt)

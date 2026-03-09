@@ -2,7 +2,7 @@ import { login } from "@/app/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-type SearchParams = { error?: string };
+type SearchParams = { error?: string; wait?: string };
 type Props = { searchParams: Promise<SearchParams> };
 
 export default async function LoginPage({ searchParams }: Props) {
@@ -17,6 +17,11 @@ export default async function LoginPage({ searchParams }: Props) {
       {params.error === "cred" ? (
         <p className="small" style={{ color: "#b3261e" }}>
           Usuario o contrasena incorrectos.
+        </p>
+      ) : null}
+      {params.error === "locked" ? (
+        <p className="small" style={{ color: "#b3261e" }}>
+          Demasiados intentos fallidos. Reintenta en {params.wait ?? "unos"} minutos.
         </p>
       ) : null}
       <form action={login}>

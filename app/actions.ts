@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clearSession, getCurrentUser, requireRole, setSession } from "@/lib/auth";
-import { hashPassword, verifyPassword } from "@/lib/security";
+import { hashPassword, validatePasswordStrength, verifyPassword } from "@/lib/security";
 import { createAuditLog } from "@/lib/audit";
+import { clearLoginAttempts, getLoginBlockRemainingMs, registerFailedLogin } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   username: z.string().min(3),
@@ -95,7 +97,7 @@ const adminUserCreateSchema = z.object({
   fullName: z.string().min(3),
   role: z.enum(["MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]),
   medicalSpecialty: z.string().optional(),
-  password: z.string().min(6)
+  password: z.string().min(10)
 }).superRefine((value, ctx) => {
   if (value.role === "MEDICO" && (!value.medicalSpecialty || value.medicalSpecialty.trim().length < 2)) {
     ctx.addIssue({
@@ -104,21 +106,68 @@ const adminUserCreateSchema = z.object({
       message: "La especialidad es obligatoria para medicos"
     });
   }
+
+  const passwordValidationError = validatePasswordStrength(value.password);
+  if (passwordValidationError) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["password"],
+      message: passwordValidationError
+    });
+  }
 });
 
+async function getClientIdentifier() {
+  const h = await headers();
+  const xForwardedFor = h.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const ip = xForwardedFor.split(",")[0]?.trim();
+    if (ip) return ip;
+  }
+
+  const realIp = h.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  return "unknown-client";
+}
+
 export async function login(formData: FormData) {
+  const usernameInput = (formData.get("username") ?? "").toString().trim();
+  const clientId = await getClientIdentifier();
+  const remainingMs = getLoginBlockRemainingMs(clientId, usernameInput);
+  if (remainingMs > 0) {
+    const waitMinutes = Math.max(1, Math.ceil(remainingMs / 60000));
+    redirect(`/login?error=locked&wait=${waitMinutes}`);
+  }
+
   const parsed = loginSchema.safeParse({
-    username: formData.get("username"),
+    username: usernameInput,
     password: formData.get("password")
   });
-  if (!parsed.success) redirect("/login?error=cred");
+  if (!parsed.success) {
+    registerFailedLogin(clientId, usernameInput);
+    redirect("/login?error=cred");
+  }
 
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.username }
   });
   if (!user || !user.isActive || !verifyPassword(parsed.data.password, user.passwordHash)) {
+    registerFailedLogin(clientId, parsed.data.username);
+    if (user) {
+      await createAuditLog({
+        actorId: user.id,
+        actorRole: user.role,
+        action: "LOGIN_FAILED",
+        entity: "Session",
+        entityId: user.id,
+        after: { email: user.email }
+      });
+    }
     redirect("/login?error=cred");
   }
+
+  clearLoginAttempts(clientId, parsed.data.username);
 
   await createAuditLog({
     actorId: user.id,
@@ -614,7 +663,11 @@ export async function createUserByAdmin(formData: FormData) {
     medicalSpecialty: formData.get("medicalSpecialty"),
     password: formData.get("password")
   });
-  if (!parsed.success) redirect("/admin/users?error=invalid");
+  if (!parsed.success) {
+    const hasWeakPassword = parsed.error.issues.some((issue) => issue.path.includes("password"));
+    if (hasWeakPassword) redirect("/admin/users?error=weakpass");
+    redirect("/admin/users?error=invalid");
+  }
 
   const exists = await prisma.user.findUnique({
     where: { email: parsed.data.email }

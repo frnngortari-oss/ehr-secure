@@ -33,6 +33,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         {params.ok ? <p className="small" style={{ color: "#198754" }}>Usuario creado correctamente.</p> : null}
         {params.error === "exists" ? <p className="small" style={{ color: "#b3261e" }}>Ese usuario ya existe.</p> : null}
         {params.error === "invalid" ? <p className="small" style={{ color: "#b3261e" }}>Datos invalidos o especialidad faltante para medico.</p> : null}
+        {params.error === "weakpass" ? <p className="small" style={{ color: "#b3261e" }}>La contrasena debe tener al menos 10 caracteres, mayuscula, minuscula, numero y simbolo.</p> : null}
         <form action={createUserByAdmin}>
           <div style={{ marginBottom: 8 }}>
             <label>Usuario (login)</label>
@@ -59,7 +60,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           </div>
           <div style={{ marginBottom: 8 }}>
             <label>Contrasena</label>
-            <input type="password" name="password" minLength={6} required />
+            <input type="password" name="password" minLength={10} required />
           </div>
           <button type="submit">Crear usuario</button>
         </form>
