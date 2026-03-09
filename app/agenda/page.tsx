@@ -85,7 +85,7 @@ function slotForTime(time: string, hourFrom: string, hourTo: string, step: numbe
 }
 
 export default async function AgendaPage({ searchParams }: Props) {
-  await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const params = await searchParams;
   const now = new Date();
   const dateFrom = params.dateFrom ?? formatDateInput(now);

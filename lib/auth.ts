@@ -6,7 +6,7 @@ import { createSessionToken, verifySessionToken } from "@/lib/security";
 export const SESSION_COOKIE = "ehr_session";
 const SESSION_MAX_AGE = 60 * 60 * 12;
 
-export const roleValues = ["ADMIN", "MEDICO", "RECEPCION"] as const;
+export const roleValues = ["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"] as const;
 export type Role = (typeof roleValues)[number];
 
 type SessionUser = {
@@ -14,6 +14,7 @@ type SessionUser = {
   email: string;
   fullName: string;
   role: Role;
+  medicalSpecialty?: string | null;
 };
 
 function getAuthSecret() {
@@ -52,7 +53,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, email: true, fullName: true, role: true, isActive: true }
+    select: { id: true, email: true, fullName: true, role: true, medicalSpecialty: true, isActive: true }
   });
 
   if (!user || !user.isActive) return null;
@@ -61,7 +62,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
-    role: user.role
+    role: user.role,
+    medicalSpecialty: user.medicalSpecialty
   };
 }
 

@@ -8,7 +8,8 @@ export type BackupPayload = {
       id: string;
       email: string;
       fullName: string;
-      role: "ADMIN" | "MEDICO" | "RECEPCION";
+      role: "ADMIN" | "MEDICO" | "PSICOLOGO" | "FONOAUDIOLOGO" | "KINESIOLOGO" | "TERAPISTA_OCUPACIONAL" | "RECEPCION";
+      medicalSpecialty: string | null;
       passwordHash: string;
       isActive: boolean;
       createdAt: string;
@@ -60,6 +61,20 @@ export type BackupPayload = {
       content: string | null;
       problemId: string | null;
       authorId: string | null;
+      authorRole: "ADMIN" | "MEDICO" | "PSICOLOGO" | "FONOAUDIOLOGO" | "KINESIOLOGO" | "TERAPISTA_OCUPACIONAL" | "RECEPCION" | null;
+      authorSpecialty: string | null;
+      createdAt: string;
+    }>;
+    documents: Array<{
+      id: string;
+      patientId: string;
+      uploadedById: string | null;
+      title: string;
+      fileName: string;
+      mimeType: string;
+      fileSize: number;
+      category: string;
+      contentBase64: string;
       createdAt: string;
     }>;
     auditLogs: Array<{
@@ -81,12 +96,13 @@ function toIso(value: Date) {
 }
 
 export async function exportBackupPayload(): Promise<BackupPayload> {
-  const [users, patients, problems, appointments, encounters, auditLogs] = await Promise.all([
+  const [users, patients, problems, appointments, encounters, documents, auditLogs] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.patient.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.problem.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.appointment.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.encounter.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.patientDocument.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.auditLog.findMany({ orderBy: { createdAt: "asc" } })
   ]);
 
@@ -99,6 +115,7 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
         email: r.email,
         fullName: r.fullName,
         role: r.role,
+        medicalSpecialty: r.medicalSpecialty,
         passwordHash: r.passwordHash,
         isActive: r.isActive,
         createdAt: toIso(r.createdAt),
@@ -150,6 +167,20 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
         content: r.content,
         problemId: r.problemId,
         authorId: r.authorId,
+        authorRole: r.authorRole,
+        authorSpecialty: r.authorSpecialty,
+        createdAt: toIso(r.createdAt)
+      })),
+      documents: documents.map((r) => ({
+        id: r.id,
+        patientId: r.patientId,
+        uploadedById: r.uploadedById,
+        title: r.title,
+        fileName: r.fileName,
+        mimeType: r.mimeType,
+        fileSize: r.fileSize,
+        category: r.category,
+        contentBase64: Buffer.from(r.content).toString("base64"),
         createdAt: toIso(r.createdAt)
       })),
       auditLogs: auditLogs.map((r) => ({

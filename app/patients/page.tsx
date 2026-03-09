@@ -63,7 +63,7 @@ export default async function PatientsPage({ searchParams }: Props) {
           </div>
           <div className="row">
             <button type="submit">Buscar</button>
-            {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO") && (
+            {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO" || user.role === "PSICOLOGO" || user.role === "FONOAUDIOLOGO" || user.role === "KINESIOLOGO" || user.role === "TERAPISTA_OCUPACIONAL") && (
               <Link href="/patients/new"><button type="button">Nuevo</button></Link>
             )}
           </div>

@@ -52,6 +52,12 @@ const encounterUpdateSchema = z.object({
   editReason: z.string().min(3)
 });
 
+const uploadDocumentSchema = z.object({
+  patientId: z.string().uuid(),
+  title: z.string().min(2),
+  category: z.string().optional()
+});
+
 const appointmentSchema = z.object({
   patientId: z.string().uuid().optional().or(z.literal("")),
   agendaName: z.string().min(3),
@@ -84,8 +90,17 @@ const appointmentStatusSchema = z.object({
 const adminUserCreateSchema = z.object({
   email: z.string().min(3),
   fullName: z.string().min(3),
-  role: z.enum(["MEDICO", "RECEPCION"]),
+  role: z.enum(["MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]),
+  medicalSpecialty: z.string().optional(),
   password: z.string().min(6)
+}).superRefine((value, ctx) => {
+  if (value.role === "MEDICO" && (!value.medicalSpecialty || value.medicalSpecialty.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["medicalSpecialty"],
+      message: "La especialidad es obligatoria para medicos"
+    });
+  }
 });
 
 export async function login(formData: FormData) {
@@ -131,7 +146,7 @@ export async function logout() {
 }
 
 export async function createPatient(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = patientSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -226,7 +241,7 @@ export async function updatePatient(formData: FormData) {
 }
 
 export async function createProblem(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = problemSchema.safeParse({
     patientId: formData.get("patientId"),
     title: formData.get("title"),
@@ -259,7 +274,7 @@ export async function createProblem(formData: FormData) {
 }
 
 export async function createEncounter(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = encounterSchema.safeParse({
     patientId: formData.get("patientId"),
     reason: formData.get("reason"),
@@ -284,7 +299,9 @@ export async function createEncounter(formData: FormData) {
       occurredAt,
       content,
       problemId: parsed.data.problemId || null,
-      authorId: actor.id
+      authorId: actor.id,
+      authorRole: actor.role,
+      authorSpecialty: actor.role === "MEDICO" ? (actor.medicalSpecialty ?? null) : actor.role
     }
   });
 
@@ -305,7 +322,7 @@ export async function createEncounter(formData: FormData) {
 }
 
 export async function updateEncounter(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = encounterUpdateSchema.safeParse({
     encounterId: formData.get("encounterId"),
     patientId: formData.get("patientId"),
@@ -352,7 +369,7 @@ export async function updateEncounter(formData: FormData) {
 }
 
 export async function createAppointment(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const patientIdInput = (formData.get("patientId") ?? "").toString();
   const agendaNameInput = (formData.get("agendaName") ?? "").toString();
   const dateInput = (formData.get("date") ?? "").toString();
@@ -487,7 +504,7 @@ export async function createAppointment(formData: FormData) {
 }
 
 export async function updateAppointmentStatus(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = appointmentStatusSchema.safeParse({
     appointmentId: formData.get("appointmentId"),
     status: formData.get("status")
@@ -525,9 +542,10 @@ export async function createUserByAdmin(formData: FormData) {
     email: formData.get("email"),
     fullName: formData.get("fullName"),
     role: formData.get("role"),
+    medicalSpecialty: formData.get("medicalSpecialty"),
     password: formData.get("password")
   });
-  if (!parsed.success) throw new Error("Datos de usuario invalidos");
+  if (!parsed.success) redirect("/admin/users?error=invalid");
 
   const exists = await prisma.user.findUnique({
     where: { email: parsed.data.email }
@@ -539,6 +557,7 @@ export async function createUserByAdmin(formData: FormData) {
       email: parsed.data.email,
       fullName: parsed.data.fullName,
       role: parsed.data.role,
+      medicalSpecialty: parsed.data.role === "MEDICO" ? parsed.data.medicalSpecialty?.trim() || null : null,
       passwordHash: hashPassword(parsed.data.password),
       isActive: true
     }
@@ -554,6 +573,7 @@ export async function createUserByAdmin(formData: FormData) {
       email: created.email,
       fullName: created.fullName,
       role: created.role,
+      medicalSpecialty: created.medicalSpecialty,
       isActive: created.isActive
     }
   });
@@ -561,4 +581,58 @@ export async function createUserByAdmin(formData: FormData) {
   revalidatePath("/admin/users");
   revalidatePath("/audit");
   redirect("/admin/users?ok=1");
+}
+
+export async function uploadPatientDocument(formData: FormData) {
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const parsed = uploadDocumentSchema.safeParse({
+    patientId: formData.get("patientId"),
+    title: formData.get("title"),
+    category: formData.get("category")
+  });
+  if (!parsed.success) throw new Error("Datos de documento invalidos");
+
+  const fileValue = formData.get("file");
+  if (!(fileValue instanceof File) || fileValue.size <= 0) throw new Error("Debe seleccionar un archivo");
+
+  const allowedMime = ["application/pdf", "image/jpeg", "image/png"];
+  const extension = fileValue.name.split(".").pop()?.toLowerCase() ?? "";
+  const allowedExtensions = ["pdf", "jpg", "jpeg", "png", "pnp"];
+  const isAllowed = allowedMime.includes(fileValue.type) || allowedExtensions.includes(extension);
+  if (!isAllowed) throw new Error("Formato no permitido. Solo PDF, JPG o PNG");
+  if (fileValue.size > 8 * 1024 * 1024) throw new Error("Archivo demasiado grande (maximo 8MB)");
+
+  const bytes = Buffer.from(await fileValue.arrayBuffer());
+  const created = await prisma.patientDocument.create({
+    data: {
+      patientId: parsed.data.patientId,
+      uploadedById: actor.id,
+      title: parsed.data.title,
+      fileName: fileValue.name,
+      mimeType: fileValue.type || (extension === "pdf" ? "application/pdf" : "image/png"),
+      fileSize: fileValue.size,
+      content: bytes,
+      category: parsed.data.category?.trim() || "Estudio"
+    }
+  });
+
+  await createAuditLog({
+    actorId: actor.id,
+    actorRole: actor.role,
+    action: "UPLOAD_DOCUMENT",
+    entity: "PatientDocument",
+    entityId: created.id,
+    patientId: created.patientId,
+    after: {
+      title: created.title,
+      category: created.category,
+      fileName: created.fileName,
+      fileSize: created.fileSize,
+      mimeType: created.mimeType
+    }
+  });
+
+  revalidatePath(`/patients/${parsed.data.patientId}`);
+  revalidatePath("/audit");
+  redirect(`/patients/${parsed.data.patientId}#documents-section`);
 }

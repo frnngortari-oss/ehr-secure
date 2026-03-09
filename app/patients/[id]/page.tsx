@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createEncounter, createProblem, updateEncounter, updatePatient } from "@/app/actions";
+import { createEncounter, createProblem, updateEncounter, updatePatient, uploadPatientDocument } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-type SearchParams = { problemId?: string };
+type SearchParams = {
+  problemId?: string;
+  evoAuthorId?: string;
+  evoSpecialty?: string;
+  evoProblemId?: string;
+};
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> };
 
 function toDateInputValue(value: Date) {
@@ -15,6 +20,16 @@ function toDatetimeInputValue(value: Date) {
   return new Date(value).toISOString().slice(0, 16);
 }
 
+const roleLabels: Record<string, string> = {
+  MEDICO: "Medico",
+  PSICOLOGO: "Psicologia",
+  FONOAUDIOLOGO: "Fonoaudiologia",
+  KINESIOLOGO: "Kinesiologia",
+  TERAPISTA_OCUPACIONAL: "Terapia ocupacional",
+  RECEPCION: "Recepcion",
+  ADMIN: "Administrador"
+};
+
 export default async function PatientDetailPage({ params, searchParams }: Params) {
   const user = await requireUser();
   const { id } = await params;
@@ -24,7 +39,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     include: {
       encounters: {
         include: {
-          author: { select: { fullName: true } },
+          author: { select: { fullName: true, role: true, medicalSpecialty: true } },
           problem: true
         },
         orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }]
@@ -32,6 +47,12 @@ export default async function PatientDetailPage({ params, searchParams }: Params
       problems: {
         where: { isActive: true },
         orderBy: { startedAt: "desc" }
+      },
+      documents: {
+        include: {
+          uploadedBy: { select: { fullName: true } }
+        },
+        orderBy: { createdAt: "desc" }
       }
     }
   });
@@ -39,8 +60,35 @@ export default async function PatientDetailPage({ params, searchParams }: Params
   if (!patient) return notFound();
 
   const canEditPatient = user.role === "ADMIN" || user.role === "RECEPCION";
-  const canAddEncounter = user.role === "ADMIN" || user.role === "MEDICO";
+  const canAddEncounter =
+    user.role === "ADMIN" ||
+    user.role === "MEDICO" ||
+    user.role === "PSICOLOGO" ||
+    user.role === "FONOAUDIOLOGO" ||
+    user.role === "KINESIOLOGO" ||
+    user.role === "TERAPISTA_OCUPACIONAL";
   const selectedProblemId = query.problemId ?? "";
+  const evoAuthorId = query.evoAuthorId ?? "";
+  const evoSpecialty = query.evoSpecialty ?? "";
+  const evoProblemId = query.evoProblemId ?? "";
+
+  const specialtyOfEncounter = (encounter: (typeof patient.encounters)[number]) => {
+    if (encounter.authorSpecialty) return encounter.authorSpecialty;
+    if (encounter.author?.role === "MEDICO") return encounter.author.medicalSpecialty ?? "Medicina general";
+    if (encounter.author?.role) return roleLabels[encounter.author.role] ?? encounter.author.role;
+    return "Sin especialidad";
+  };
+
+  const filteredEncounters = patient.encounters.filter((encounter) => {
+    if (evoAuthorId && encounter.authorId !== evoAuthorId) return false;
+    if (evoSpecialty && specialtyOfEncounter(encounter) !== evoSpecialty) return false;
+    if (evoProblemId === "__NONE__" && encounter.problemId) return false;
+    if (evoProblemId && evoProblemId !== "__NONE__" && (encounter.problemId ?? "") !== evoProblemId) return false;
+    return true;
+  });
+
+  const availableSpecialties = Array.from(new Set(patient.encounters.map((encounter) => specialtyOfEncounter(encounter))));
+
   const selectedProblem = patient.problems.find((problem) => problem.id === selectedProblemId) ?? null;
   const linkedEncounters = selectedProblem
     ? patient.encounters.filter((encounter) => encounter.problemId === selectedProblem.id)
@@ -209,6 +257,62 @@ export default async function PatientDetailPage({ params, searchParams }: Params
         </div>
       </div>
 
+      <div id="documents-section" className="card">
+        <h3 style={{ marginTop: 0 }}>Documentos/Estudios</h3>
+        <p className="small">Soporta JPG, PNG y PDF. En celular podes sacar foto directa para subirla.</p>
+        <form action={uploadPatientDocument}>
+          <input type="hidden" name="patientId" value={patient.id} />
+          <div className="grid">
+            <div>
+              <label>Titulo</label>
+              <input name="title" required placeholder="Ej: Rx Torax 03/2026" />
+            </div>
+            <div>
+              <label>Categoria</label>
+              <select name="category" defaultValue="Estudio">
+                <option value="Estudio">Estudio</option>
+                <option value="Documento">Documento</option>
+                <option value="Imagen">Imagen</option>
+              </select>
+            </div>
+            <div>
+              <label>Archivo</label>
+              <input
+                type="file"
+                name="file"
+                accept="image/*,application/pdf,.jpg,.jpeg,.png"
+                capture="environment"
+                required
+              />
+            </div>
+          </div>
+          <button style={{ marginTop: 10 }} type="submit">Subir archivo</button>
+        </form>
+
+        <div style={{ marginTop: 12 }}>
+          {patient.documents.length === 0 ? <p className="small">Sin archivos cargados.</p> : null}
+          {patient.documents.map((doc) => (
+            <article key={doc.id} className="card" style={{ marginBottom: 8, padding: 10 }}>
+              <p style={{ margin: 0 }}><strong>{doc.title}</strong></p>
+              <p className="small" style={{ margin: "4px 0" }}>
+                {doc.category} | {doc.fileName} | {(doc.fileSize / 1024).toFixed(1)} KB
+              </p>
+              <p className="small" style={{ margin: "4px 0" }}>
+                Cargado: {new Date(doc.createdAt).toLocaleString("es-AR")} por {doc.uploadedBy?.fullName ?? "Sin dato"}
+              </p>
+              <a
+                href={`/api/patients/documents/${doc.id}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "#0d4f91", textDecoration: "underline" }}
+              >
+                Ver / Descargar
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+
       {canAddEncounter && (
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Nueva evolucion</h3>
@@ -248,12 +352,51 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Evoluciones</h3>
-        {patient.encounters.length === 0 ? <p className="small">Sin evoluciones todavia.</p> : null}
-        {patient.encounters.map((encounter) => (
+        <form method="GET" className="grid" style={{ marginBottom: 10 }}>
+          <input type="hidden" name="problemId" value={selectedProblemId} />
+          <div>
+            <label>Profesional</label>
+            <select name="evoAuthorId" defaultValue={evoAuthorId}>
+              <option value="">Todos</option>
+              {patient.encounters
+                .filter((encounter) => Boolean(encounter.authorId))
+                .filter((encounter, index, arr) => arr.findIndex((x) => x.authorId === encounter.authorId) === index)
+                .map((encounter) => (
+                  <option key={encounter.id} value={encounter.authorId ?? ""}>
+                    {encounter.author?.fullName ?? "Sin profesional"}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label>Especialidad</label>
+            <select name="evoSpecialty" defaultValue={evoSpecialty}>
+              <option value="">Todas</option>
+              {availableSpecialties.map((specialty) => (
+                <option key={specialty} value={specialty}>{specialty}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Problema</label>
+            <select name="evoProblemId" defaultValue={evoProblemId}>
+              <option value="">Todos</option>
+              <option value="__NONE__">Sin asociar</option>
+              {patient.problems.map((problem) => (
+                <option key={problem.id} value={problem.id}>{problem.title}</option>
+              ))}
+            </select>
+          </div>
+          <div className="row" style={{ alignItems: "flex-end" }}>
+            <button type="submit">Aplicar filtros</button>
+          </div>
+        </form>
+        {filteredEncounters.length === 0 ? <p className="small">Sin evoluciones para ese filtro.</p> : null}
+        {filteredEncounters.map((encounter) => (
           <article key={encounter.id} className="card" style={{ marginBottom: 10 }}>
             <p className="small">{new Date(encounter.occurredAt).toLocaleString("es-AR")}</p>
             <p className="small">
-              Profesional: {encounter.author?.fullName ?? "Sin dato"} | Problema: {encounter.problem?.title ?? "Sin asociar"}
+              Profesional: {encounter.author?.fullName ?? "Sin dato"} | Especialidad: {specialtyOfEncounter(encounter)} | Problema: {encounter.problem?.title ?? "Sin asociar"}
             </p>
             <p><strong>Motivo:</strong> {encounter.reason}</p>
             <p><strong>Plan:</strong> {encounter.plan}</p>

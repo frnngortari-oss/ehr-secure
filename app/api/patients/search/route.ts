@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
-  if (!["ADMIN", "RECEPCION", "MEDICO"].includes(user.role)) {
+  if (!["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"].includes(user.role)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 

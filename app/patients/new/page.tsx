@@ -7,7 +7,7 @@ type Props = {
 };
 
 export default async function NewPatientPage({ searchParams }: Props) {
-  await requireRole(["ADMIN", "RECEPCION", "MEDICO"]);
+  await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const params = await searchParams;
 
   return (

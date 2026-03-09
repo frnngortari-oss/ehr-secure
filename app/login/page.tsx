@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: Props) {
   return (
     <div className="card" style={{ maxWidth: 460, margin: "40px auto" }}>
       <h2 style={{ marginTop: 0 }}>Ingresar</h2>
-      <p className="small">Acceso por rol: admin, medico o recepcion.</p>
+      <p className="small">Acceso por rol: admin, recepcion o profesionales clinicos.</p>
       {params.error === "cred" ? (
         <p className="small" style={{ color: "#b3261e" }}>
           Usuario o contrasena incorrectos.

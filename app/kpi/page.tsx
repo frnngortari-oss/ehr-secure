@@ -17,7 +17,7 @@ function monthLabel(date: Date) {
 }
 
 export default async function KpiPage() {
-  await requireRole(["ADMIN", "MEDICO", "RECEPCION"]);
+  await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]);
   const now = new Date();
   const current = monthRange(now, 0);
   const previous = monthRange(now, -1);

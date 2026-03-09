@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavIcon } from "@/components/nav-icon";
 
-type Role = "ADMIN" | "MEDICO" | "RECEPCION";
+type Role = "ADMIN" | "MEDICO" | "PSICOLOGO" | "FONOAUDIOLOGO" | "KINESIOLOGO" | "TERAPISTA_OCUPACIONAL" | "RECEPCION";
 
 type Item = {
   href: string;
@@ -27,7 +27,7 @@ const sections: Array<{ title: string; items: Item[] }> = [
       { href: "/patients", label: "Pacientes", icon: "patients" },
       { href: "/agenda", label: "Agenda", icon: "agenda" },
       { href: "/evolutions", label: "Evoluciones", icon: "evolutions" },
-      { href: "/patients/new", label: "Nuevo paciente", icon: "new", roles: ["ADMIN", "RECEPCION", "MEDICO"] }
+      { href: "/patients/new", label: "Nuevo paciente", icon: "new", roles: ["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"] }
     ]
   },
   {

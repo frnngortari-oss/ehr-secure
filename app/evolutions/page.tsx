@@ -18,7 +18,7 @@ function toDate(value?: string, end?: boolean) {
 }
 
 export default async function EvolutionsPage({ searchParams }: Props) {
-  await requireRole(["ADMIN", "MEDICO", "RECEPCION"]);
+  await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]);
   const params = await searchParams;
   const dayStart = params.day ? toDate(params.day) : undefined;
   const dayEnd = params.day ? toDate(params.day, true) : undefined;

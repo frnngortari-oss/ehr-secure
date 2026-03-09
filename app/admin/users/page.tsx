@@ -20,6 +20,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       email: true,
       fullName: true,
       role: true,
+      medicalSpecialty: true,
       isActive: true,
       createdAt: true
     }
@@ -31,6 +32,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         <h2 style={{ marginTop: 0 }}>Crear usuario</h2>
         {params.ok ? <p className="small" style={{ color: "#198754" }}>Usuario creado correctamente.</p> : null}
         {params.error === "exists" ? <p className="small" style={{ color: "#b3261e" }}>Ese usuario ya existe.</p> : null}
+        {params.error === "invalid" ? <p className="small" style={{ color: "#b3261e" }}>Datos invalidos o especialidad faltante para medico.</p> : null}
         <form action={createUserByAdmin}>
           <div style={{ marginBottom: 8 }}>
             <label>Usuario (login)</label>
@@ -44,8 +46,16 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             <label>Rol</label>
             <select name="role" defaultValue="MEDICO">
               <option value="MEDICO">MEDICO</option>
+              <option value="PSICOLOGO">PSICOLOGO</option>
+              <option value="FONOAUDIOLOGO">FONOAUDIOLOGO</option>
+              <option value="KINESIOLOGO">KINESIOLOGO</option>
+              <option value="TERAPISTA_OCUPACIONAL">TERAPISTA OCUPACIONAL</option>
               <option value="RECEPCION">RECEPCION</option>
             </select>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>Especialidad medica (solo para MEDICO)</label>
+            <input name="medicalSpecialty" placeholder="Ej: Clinica medica, Neurologia..." />
           </div>
           <div style={{ marginBottom: 8 }}>
             <label>Contrasena</label>
@@ -65,6 +75,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 <th>Usuario</th>
                 <th>Nombre</th>
                 <th>Rol</th>
+                <th>Especialidad</th>
                 <th>Activo</th>
                 <th>Alta</th>
               </tr>
@@ -75,6 +86,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   <td>{user.email}</td>
                   <td>{user.fullName}</td>
                   <td>{user.role}</td>
+                  <td>{user.medicalSpecialty ?? "-"}</td>
                   <td>{user.isActive ? "Si" : "No"}</td>
                   <td>{new Date(user.createdAt).toLocaleString("es-AR")}</td>
                 </tr>

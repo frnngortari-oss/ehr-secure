@@ -17,6 +17,10 @@ enum Sex {
 enum Role {
   ADMIN
   MEDICO
+  PSICOLOGO
+  FONOAUDIOLOGO
+  KINESIOLOGO
+  TERAPISTA_OCUPACIONAL
   RECEPCION
 }
 
@@ -32,6 +36,7 @@ model User {
   email        String     @unique
   fullName     String
   role         Role
+  medicalSpecialty String?
   passwordHash String
   isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())
@@ -40,6 +45,7 @@ model User {
   appointments Appointment[]
   problems     Problem[]
   encounters   Encounter[]
+  uploadedDocuments PatientDocument[]
 }
 
 model Patient {
@@ -58,6 +64,7 @@ model Patient {
   auditLogs  AuditLog[]
   appointments Appointment[]
   problems   Problem[]
+  documents  PatientDocument[]
 
   @@index([lastName, firstName])
 }
@@ -72,6 +79,8 @@ model Encounter {
   content    String?
   problemId  String?
   authorId   String?
+  authorRole Role?
+  authorSpecialty String?
   createdAt  DateTime @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -80,6 +89,24 @@ model Encounter {
 
   @@index([patientId, createdAt])
   @@index([occurredAt])
+}
+
+model PatientDocument {
+  id          String   @id @default(uuid())
+  patientId   String
+  uploadedById String?
+  title       String
+  fileName    String
+  mimeType    String
+  fileSize    Int
+  content     Bytes
+  category    String   @default("Documento")
+  createdAt   DateTime @default(now())
+
+  patient    Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploadedBy User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
 }
 
 model Appointment {
