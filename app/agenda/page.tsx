@@ -85,7 +85,7 @@ function slotForTime(time: string, hourFrom: string, hourTo: string, step: numbe
 }
 
 export default async function AgendaPage({ searchParams }: Props) {
-  await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const params = await searchParams;
   const now = new Date();
   const dateFrom = params.dateFrom ?? formatDateInput(now);
@@ -117,6 +117,7 @@ export default async function AgendaPage({ searchParams }: Props) {
   const [appointments, monthAppointments, appointmentsOfDay, selectedPatient] = await Promise.all([
     prisma.appointment.findMany({
       where: {
+        clinicianId: actor.id,
         scheduledAt: { gte: start, lte: end },
         patient: params.q
           ? {
@@ -135,11 +136,15 @@ export default async function AgendaPage({ searchParams }: Props) {
       orderBy: [{ scheduledAt: "asc" }]
     }),
     prisma.appointment.findMany({
-      where: { scheduledAt: { gte: month.start, lte: month.end } },
+      where: {
+        clinicianId: actor.id,
+        scheduledAt: { gte: month.start, lte: month.end }
+      },
       select: { scheduledAt: true }
     }),
     prisma.appointment.findMany({
       where: {
+        clinicianId: actor.id,
         scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
         patient: params.q
           ? {

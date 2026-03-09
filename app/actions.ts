@@ -522,7 +522,7 @@ export async function createAppointment(formData: FormData) {
       scheduledAt,
       modality: parsed.data.modality || "Ambulatorio",
       notes: parsed.data.notes || null,
-      clinicianId: parsed.data.clinicianId || null
+      clinicianId: actor.id
     }
   });
 
@@ -581,6 +581,9 @@ export async function updateAppointmentStatus(formData: FormData) {
     where: { id: parsed.data.appointmentId }
   });
   if (!previous) throw new Error("Turno no encontrado");
+  if (previous.clinicianId !== actor.id) {
+    throw new Error("No autorizado para modificar turnos de otro usuario");
+  }
 
   const updated = await prisma.appointment.update({
     where: { id: parsed.data.appointmentId },
