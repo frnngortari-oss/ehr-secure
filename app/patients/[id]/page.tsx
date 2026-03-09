@@ -77,7 +77,8 @@ export default async function PatientDetailPage({ params, searchParams }: Params
   const errorText: Record<string, string> = {
     evolution_invalid: "No se pudo guardar la evolucion. Revisa motivo y fecha.",
     evolution_edit_invalid: "No se pudo guardar la edicion. Revisa los campos obligatorios.",
-    evolution_date: "La fecha/hora no es valida."
+    evolution_date: "La fecha/hora no es valida.",
+    evolution_problem_invalid: "Si cargas un problema nuevo desde la evolucion, debe tener al menos 3 caracteres."
   };
   const selectedProblemCardId = query.problemId ?? "";
   const evoAuthorId = query.evoAuthorId ?? "";
@@ -390,7 +391,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                       <div className="grid">
                         <div>
                           <label>Fecha y hora</label>
-                          <input type="datetime-local" name="occurredAt" defaultValue={toDatetimeInputValue(new Date())} />
+                          <input value="Automatica al guardar" readOnly />
                         </div>
                         <div>
                           <label>Problema asociado</label>
@@ -403,16 +404,24 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                         </div>
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        <label>Motivo de consulta</label>
-                        <input name="reason" required />
+                        <label>Motivo de consulta (opcional)</label>
+                        <input name="reason" placeholder="Si lo dejas vacio, se guarda como 'Evolucion clinica'" />
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <label>Problema nuevo (si no existe en la lista)</label>
+                        <input name="newProblemTitle" placeholder="Ej: Dolor lumbar cronico" />
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <label>Categoria del problema nuevo</label>
+                        <input name="newProblemCategory" defaultValue="Problema" />
                       </div>
                       <div style={{ marginTop: 8 }}>
                         <label>Texto libre de evolucion</label>
                         <textarea name="content" rows={8} placeholder="Ingrese aqui la evolucion..." />
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        <label>Plan</label>
-                        <textarea name="plan" rows={2} required />
+                        <label>Plan (opcional)</label>
+                        <textarea name="plan" rows={2} placeholder="Si lo dejas vacio, se guarda como 'Sin plan consignado'" />
                       </div>
                       <button style={{ marginTop: 10 }} type="submit">Guardar evolucion</button>
                     </form>

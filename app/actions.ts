@@ -33,12 +33,15 @@ const problemSchema = z.object({
 
 const encounterSchema = z.object({
   patientId: z.string().uuid(),
-  reason: z.string().trim().min(1),
+  reason: z.string().optional().or(z.literal("")),
   assessment: z.string().optional(),
   plan: z.string().optional().or(z.literal("")),
   occurredAt: z.string().optional(),
   content: z.string().optional(),
-  problemId: z.string().uuid().optional().or(z.literal(""))
+  problemId: z.string().uuid().optional().or(z.literal("")),
+  createNewProblem: z.string().optional(),
+  newProblemTitle: z.string().optional(),
+  newProblemCategory: z.string().optional()
 });
 
 const encounterUpdateSchema = z.object({
@@ -283,7 +286,10 @@ export async function createEncounter(formData: FormData) {
     plan: formData.get("plan"),
     occurredAt: formData.get("occurredAt"),
     content: formData.get("content"),
-    problemId: formData.get("problemId")
+    problemId: formData.get("problemId"),
+    createNewProblem: formData.get("createNewProblem"),
+    newProblemTitle: formData.get("newProblemTitle"),
+    newProblemCategory: formData.get("newProblemCategory")
   });
   if (!parsed.success) {
     console.error("createEncounter validation failed", parsed.error.flatten());
@@ -291,14 +297,43 @@ export async function createEncounter(formData: FormData) {
     throw new Error("Datos de evolucion invalidos");
   }
 
-  const occurredAt = parsed.data.occurredAt?.trim() ? new Date(parsed.data.occurredAt) : new Date();
+  const occurredAt = new Date();
   if (Number.isNaN(occurredAt.getTime())) {
     redirect(`/patients/${parsed.data.patientId}?error=evolution_date`);
   }
-  const reason = parsed.data.reason.trim();
+  const reason = parsed.data.reason?.trim() || "Evolucion clinica";
   const plan = parsed.data.plan?.trim() || "Sin plan consignado";
   const assessment = parsed.data.assessment?.trim() || "Sin evaluacion";
   const content = parsed.data.content?.trim() || `Motivo: ${reason}\n\nPlan: ${plan}`;
+  const shouldCreateProblem =
+    parsed.data.createNewProblem === "1" || (!parsed.data.problemId && Boolean(parsed.data.newProblemTitle?.trim()));
+  let problemId = parsed.data.problemId || null;
+
+  if (shouldCreateProblem) {
+    const problemTitle = parsed.data.newProblemTitle?.trim() || "";
+    if (problemTitle.length < 3) {
+      redirect(`/patients/${parsed.data.patientId}?error=evolution_problem_invalid`);
+    }
+    const createdProblem = await prisma.problem.create({
+      data: {
+        patientId: parsed.data.patientId,
+        title: problemTitle,
+        category: parsed.data.newProblemCategory?.trim() || "Problema",
+        createdById: actor.id
+      }
+    });
+    problemId = createdProblem.id;
+
+    await createAuditLog({
+      actorId: actor.id,
+      actorRole: actor.role,
+      action: "CREATE_PROBLEM",
+      entity: "Problem",
+      entityId: createdProblem.id,
+      patientId: createdProblem.patientId,
+      after: createdProblem
+    });
+  }
 
   const encounter = await prisma.encounter.create({
     data: {
@@ -308,7 +343,7 @@ export async function createEncounter(formData: FormData) {
       plan,
       occurredAt,
       content,
-      problemId: parsed.data.problemId || null,
+      problemId,
       authorId: actor.id,
       authorRole: actor.role,
       authorSpecialty: actor.role === "MEDICO" ? (actor.medicalSpecialty ?? null) : actor.role
