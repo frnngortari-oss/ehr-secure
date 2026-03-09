@@ -22,7 +22,7 @@ async function seedUsers() {
     },
     {
       email: "Fgortari",
-      fullName: "Dr. Fgortari",
+      fullName: "Francisco Gortari",
       role: "MEDICO" as const,
       medicalSpecialty: "Neurologia",
       password: "Qwerty\"852963"
