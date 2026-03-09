@@ -17,18 +17,21 @@ async function seedUsers() {
       email: "Fgortariadmin",
       fullName: "Administrador Fgortari",
       role: "ADMIN" as const,
+      medicalSpecialty: null,
       password: "Qwerty\"852963"
     },
     {
       email: "Fgortari",
-      fullName: "Medico Fgortari",
+      fullName: "Dr. Fgortari",
       role: "MEDICO" as const,
+      medicalSpecialty: "Neurologia",
       password: "Qwerty\"852963"
     },
     {
       email: "recepcion@ehr.local",
       fullName: "Recepcion Demo",
       role: "RECEPCION" as const,
+      medicalSpecialty: null,
       password: "Recepcion123!"
     }
   ];
@@ -39,6 +42,7 @@ async function seedUsers() {
       update: {
         fullName: user.fullName,
         role: user.role,
+        medicalSpecialty: user.role === "MEDICO" ? user.medicalSpecialty : null,
         passwordHash: hashPassword(user.password),
         isActive: true
       },
@@ -46,6 +50,7 @@ async function seedUsers() {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        medicalSpecialty: user.role === "MEDICO" ? user.medicalSpecialty : null,
         passwordHash: hashPassword(user.password)
       }
     });

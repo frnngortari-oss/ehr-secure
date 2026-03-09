@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions";
 import SidebarNav from "@/components/sidebar-nav";
-import ThemeSelector from "@/components/theme-selector";
 
 export const metadata = {
   title: "Historia Clinica Virtual",
@@ -14,7 +13,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser();
 
   return (
-    <html lang="es">
+    <html lang="es" data-theme="oceano">
       <body>
         <div className={user ? "app-shell with-sidebar" : "app-shell"}>
           {user ? <input id="sidebar-toggle" className="sidebar-toggle-input" type="checkbox" /> : null}
@@ -41,7 +40,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </div>
               {user ? (
                 <div className="row">
-                  <ThemeSelector />
                   <form action={logout}>
                     <button style={{ width: "auto", padding: "6px 12px" }} type="submit">Salir</button>
                   </form>

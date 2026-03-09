@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createEncounter, createProblem, updateEncounter, updatePatient, uploadPatientDocument } from "@/app/actions";
+import { createProblem, updateEncounter, updatePatient, uploadPatientDocument } from "@/app/actions";
+import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -307,7 +308,15 @@ export default async function PatientDetailPage({ params, searchParams }: Params
               </div>
 
               <div className="card">
-                <h3 style={{ marginTop: 0 }}>Evoluciones</h3>
+                <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ marginTop: 0, marginBottom: 0 }}>Evoluciones</h3>
+                  {canWorkClinical ? (
+                    <EvolutionComposeDrawer
+                      patientId={patient.id}
+                      problems={patient.problems.map((problem) => ({ id: problem.id, title: problem.title }))}
+                    />
+                  ) : null}
+                </div>
                 <form method="GET" className="grid" style={{ marginBottom: 10 }}>
                   <input type="hidden" name="section" value="evolutions" />
                   <input type="hidden" name="problemId" value={selectedProblemCardId} />
@@ -381,53 +390,6 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                   </article>
                 ))}
               </div>
-
-              {canWorkClinical ? (
-                <div className="card">
-                  <details open>
-                    <summary style={{ cursor: "pointer", fontWeight: 600 }}>Nueva evolucion</summary>
-                    <form action={createEncounter} style={{ marginTop: 10 }}>
-                      <input type="hidden" name="patientId" value={patient.id} />
-                      <div className="grid">
-                        <div>
-                          <label>Fecha y hora</label>
-                          <input value="Automatica al guardar" readOnly />
-                        </div>
-                        <div>
-                          <label>Problema asociado</label>
-                          <select name="problemId" defaultValue="">
-                            <option value="">Sin asociar</option>
-                            {patient.problems.map((problem) => (
-                              <option key={problem.id} value={problem.id}>{problem.title}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>Motivo de consulta (opcional)</label>
-                        <input name="reason" placeholder="Si lo dejas vacio, se guarda como 'Evolucion clinica'" />
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>Problema nuevo (si no existe en la lista)</label>
-                        <input name="newProblemTitle" placeholder="Ej: Dolor lumbar cronico" />
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>Categoria del problema nuevo</label>
-                        <input name="newProblemCategory" defaultValue="Problema" />
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>Texto libre de evolucion</label>
-                        <textarea name="content" rows={8} placeholder="Ingrese aqui la evolucion..." />
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>Plan (opcional)</label>
-                        <textarea name="plan" rows={2} placeholder="Si lo dejas vacio, se guarda como 'Sin plan consignado'" />
-                      </div>
-                      <button style={{ marginTop: 10 }} type="submit">Guardar evolucion</button>
-                    </form>
-                  </details>
-                </div>
-              ) : null}
 
               {canWorkClinical ? (
                 <div className="card">
