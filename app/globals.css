@@ -516,6 +516,46 @@ label {
   background: #edf5fd;
 }
 
+.patient-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.patient-subindex {
+  position: sticky;
+  top: 12px;
+}
+
+.subindex-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #24364d;
+}
+
+.subindex-link:hover {
+  background: #eef4fb;
+  border-color: #d8e4f2;
+}
+
+.subindex-link.active {
+  background: #e7f0fb;
+  border-color: #bfd5ee;
+  color: #0d4f91;
+  font-weight: 600;
+}
+
+.subindex-group {
+  border-top: 1px dashed var(--border);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
 .audit-table {
   width: 100%;
   border-collapse: collapse;
@@ -577,8 +617,13 @@ label {
   }
 
   .split-layout,
-  .two-col {
+  .two-col,
+  .patient-layout {
     grid-template-columns: 1fr;
+  }
+
+  .patient-subindex {
+    position: static;
   }
 
   .kpi-grid {

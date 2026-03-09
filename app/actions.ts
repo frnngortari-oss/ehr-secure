@@ -599,7 +599,7 @@ export async function uploadPatientDocument(formData: FormData) {
   const extension = fileValue.name.split(".").pop()?.toLowerCase() ?? "";
   const allowedExtensions = ["pdf", "jpg", "jpeg", "png", "pnp"];
   const isAllowed = allowedMime.includes(fileValue.type) || allowedExtensions.includes(extension);
-  if (!isAllowed) throw new Error("Formato no permitido. Solo PDF, JPG o PNG");
+  if (!isAllowed) throw new Error("Formato no permitido. Solo PDF, JPG, PNG o PNP");
   if (fileValue.size > 8 * 1024 * 1024) throw new Error("Archivo demasiado grande (maximo 8MB)");
 
   const bytes = Buffer.from(await fileValue.arrayBuffer());
