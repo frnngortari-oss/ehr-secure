@@ -438,7 +438,7 @@ label {
 .evo-compose-drawer {
   position: fixed;
   top: 74px;
-  right: 14px;
+  left: 14px;
   bottom: 14px;
   width: min(540px, calc(100vw - 28px));
   border: 1px solid var(--border);
@@ -462,6 +462,17 @@ label {
 .evo-compose-body {
   padding: 12px;
   overflow-y: auto;
+}
+
+.evo-compose-drawer.minimized {
+  top: auto;
+  bottom: 14px;
+  width: min(320px, calc(100vw - 28px));
+  height: auto;
+}
+
+.evo-compose-mini {
+  padding: 10px 12px;
 }
 
 .kpi-grid {
@@ -835,7 +846,12 @@ label {
 
   .evo-compose-drawer {
     top: 68px;
-    right: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+  }
+
+  .evo-compose-drawer.minimized {
     bottom: 8px;
     width: calc(100vw - 16px);
   }
