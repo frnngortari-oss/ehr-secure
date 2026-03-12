@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createProblem, updateEncounter, updatePatient } from "@/app/actions";
+import { createProblem, deleteEncounter, updateEncounter, updatePatient } from "@/app/actions";
 import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -66,6 +66,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     user.role === "FONOAUDIOLOGO" ||
     user.role === "KINESIOLOGO" ||
     user.role === "TERAPISTA_OCUPACIONAL";
+  const canDeleteEncounter = user.role === "ADMIN";
 
   const selectedSection = "evolutions";
   const errorCode = query.error ?? "";
@@ -137,6 +138,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     if (merged.evoProblemId) qs.set("evoProblemId", merged.evoProblemId);
     return `/patients/${patient.id}${qs.toString() ? `?${qs.toString()}` : ""}`;
   };
+  const currentPatientHref = buildHref({});
 
   return (
     <div>
@@ -291,6 +293,21 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                     <p style={{ margin: "4px 0" }}><strong>Motivo:</strong> {encounter.reason}</p>
                     <p style={{ margin: "4px 0" }}><strong>Plan:</strong> {encounter.plan}</p>
                     {encounter.content ? <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{encounter.content}</p> : null}
+                    {canDeleteEncounter ? (
+                      <details style={{ marginTop: 8 }}>
+                        <summary className="small" style={{ cursor: "pointer", color: "#b3261e" }}>
+                          Eliminar evolucion (solo admin)
+                        </summary>
+                        <form action={deleteEncounter} style={{ marginTop: 8 }}>
+                          <input type="hidden" name="encounterId" value={encounter.id} />
+                          <input type="hidden" name="patientId" value={patient.id} />
+                          <input type="hidden" name="returnTo" value={currentPatientHref} />
+                          <label>Motivo de eliminacion (obligatorio)</label>
+                          <textarea name="deleteReason" rows={2} required placeholder="Ej: Evolucion cargada al paciente incorrecto" />
+                          <button style={{ marginTop: 8, background: "#b3261e" }} type="submit">Confirmar eliminacion</button>
+                        </form>
+                      </details>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -372,6 +389,21 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                             <textarea name="editReason" rows={2} required placeholder="Ej: Correccion de dato clinico" />
                           </div>
                           <button style={{ marginTop: 8 }} type="submit">Guardar edicion</button>
+                        </form>
+                      </details>
+                    ) : null}
+                    {canDeleteEncounter ? (
+                      <details style={{ marginTop: 8 }}>
+                        <summary className="small" style={{ cursor: "pointer", color: "#b3261e" }}>
+                          Eliminar evolucion (solo admin)
+                        </summary>
+                        <form action={deleteEncounter} style={{ marginTop: 8 }}>
+                          <input type="hidden" name="encounterId" value={encounter.id} />
+                          <input type="hidden" name="patientId" value={patient.id} />
+                          <input type="hidden" name="returnTo" value={currentPatientHref} />
+                          <label>Motivo de eliminacion (obligatorio)</label>
+                          <textarea name="deleteReason" rows={2} required placeholder="Ej: Evolucion cargada al paciente incorrecto" />
+                          <button style={{ marginTop: 8, background: "#b3261e" }} type="submit">Confirmar eliminacion</button>
                         </form>
                       </details>
                     ) : null}

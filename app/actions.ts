@@ -57,6 +57,13 @@ const encounterUpdateSchema = z.object({
   editReason: z.string().trim().min(1)
 });
 
+const encounterDeleteSchema = z.object({
+  encounterId: z.string().uuid(),
+  patientId: z.string().uuid().optional(),
+  deleteReason: z.string().trim().min(3),
+  returnTo: z.string().optional()
+});
+
 const uploadDocumentSchema = z.object({
   patientId: z.string().uuid(),
   title: z.string().min(2),
@@ -129,6 +136,14 @@ async function getClientIdentifier() {
   if (realIp) return realIp.trim();
 
   return "unknown-client";
+}
+
+function normalizeReturnPath(path?: string) {
+  if (!path) return null;
+  const trimmed = path.trim();
+  if (!trimmed.startsWith("/")) return null;
+  if (trimmed.startsWith("//")) return null;
+  return trimmed;
 }
 
 export async function login(formData: FormData) {
@@ -481,6 +496,45 @@ export async function updateEncounter(formData: FormData) {
   revalidatePath("/evolutions");
   revalidatePath("/audit");
   redirect(`/patients/${parsed.data.patientId}`);
+}
+
+export async function deleteEncounter(formData: FormData) {
+  const actor = await requireRole(["ADMIN"]);
+  const parsed = encounterDeleteSchema.safeParse({
+    encounterId: formData.get("encounterId"),
+    patientId: formData.get("patientId"),
+    deleteReason: formData.get("deleteReason"),
+    returnTo: formData.get("returnTo")
+  });
+  if (!parsed.success) throw new Error("Datos de eliminacion de evolucion invalidos");
+
+  const previous = await prisma.encounter.findUnique({
+    where: { id: parsed.data.encounterId }
+  });
+  if (!previous) throw new Error("Evolucion no encontrada");
+
+  await prisma.encounter.delete({
+    where: { id: parsed.data.encounterId }
+  });
+
+  await createAuditLog({
+    actorId: actor.id,
+    actorRole: actor.role,
+    action: "DELETE_ENCOUNTER",
+    entity: "Encounter",
+    entityId: previous.id,
+    patientId: previous.patientId,
+    before: previous,
+    after: { deleted: true, deleteReason: parsed.data.deleteReason }
+  });
+
+  revalidatePath(`/patients/${previous.patientId}`);
+  revalidatePath("/evolutions");
+  revalidatePath("/audit");
+
+  const returnTo = normalizeReturnPath(parsed.data.returnTo);
+  if (returnTo) redirect(returnTo);
+  redirect(`/patients/${previous.patientId}`);
 }
 
 export async function createAppointment(formData: FormData) {

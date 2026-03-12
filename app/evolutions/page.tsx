@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { deleteEncounter } from "@/app/actions";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -18,8 +19,9 @@ function toDate(value?: string, end?: boolean) {
 }
 
 export default async function EvolutionsPage({ searchParams }: Props) {
-  await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]);
+  const user = await requireRole(["ADMIN", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL", "RECEPCION"]);
   const params = await searchParams;
+  const canDeleteEncounter = user.role === "ADMIN";
   const dayStart = params.day ? toDate(params.day) : undefined;
   const dayEnd = params.day ? toDate(params.day, true) : undefined;
 
@@ -55,6 +57,14 @@ export default async function EvolutionsPage({ searchParams }: Props) {
     select: { category: true },
     orderBy: { category: "asc" }
   });
+
+  const returnQs = new URLSearchParams();
+  if (params.patient) returnQs.set("patient", params.patient);
+  if (params.day) returnQs.set("day", params.day);
+  if (params.dateFrom) returnQs.set("dateFrom", params.dateFrom);
+  if (params.dateTo) returnQs.set("dateTo", params.dateTo);
+  if (params.category) returnQs.set("category", params.category);
+  const returnTo = `/evolutions${returnQs.toString() ? `?${returnQs.toString()}` : ""}`;
 
   return (
     <div className="split-layout">
@@ -112,6 +122,21 @@ export default async function EvolutionsPage({ searchParams }: Props) {
             <p className="small">Profesional: {ev.author?.fullName ?? "Sin dato"}</p>
             <p style={{ whiteSpace: "pre-wrap" }}>{ev.content ?? ev.assessment}</p>
             <Link href={`/patients/${ev.patientId}`}>Ir a ficha del paciente</Link>
+            {canDeleteEncounter ? (
+              <details style={{ marginTop: 8 }}>
+                <summary className="small" style={{ cursor: "pointer", color: "#b3261e" }}>
+                  Eliminar evolucion (solo admin)
+                </summary>
+                <form action={deleteEncounter} style={{ marginTop: 8 }}>
+                  <input type="hidden" name="encounterId" value={ev.id} />
+                  <input type="hidden" name="patientId" value={ev.patientId} />
+                  <input type="hidden" name="returnTo" value={returnTo} />
+                  <label>Motivo de eliminacion (obligatorio)</label>
+                  <textarea name="deleteReason" rows={2} required placeholder="Ej: Evolucion cargada al paciente incorrecto" />
+                  <button style={{ marginTop: 8, background: "#b3261e" }} type="submit">Confirmar eliminacion</button>
+                </form>
+              </details>
+            ) : null}
           </article>
         ))}
       </section>
