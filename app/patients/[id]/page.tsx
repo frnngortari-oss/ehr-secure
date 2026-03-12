@@ -52,12 +52,6 @@ export default async function PatientDetailPage({ params, searchParams }: Params
       problems: {
         where: { isActive: true },
         orderBy: { startedAt: "desc" }
-      },
-      documents: {
-        include: {
-          uploadedBy: { select: { fullName: true } }
-        },
-        orderBy: { createdAt: "desc" }
       }
     }
   });
@@ -73,7 +67,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     user.role === "KINESIOLOGO" ||
     user.role === "TERAPISTA_OCUPACIONAL";
 
-  const selectedSection = query.section === "documents" ? "documents" : "evolutions";
+  const selectedSection = "evolutions";
   const errorCode = query.error ?? "";
   const errorText: Record<string, string> = {
     evolution_invalid: "No se pudo guardar la evolucion. Revisa motivo y fecha.",
@@ -257,17 +251,10 @@ export default async function PatientDetailPage({ params, searchParams }: Params
             </>
           ) : null}
 
-          <Link
-            href={buildHref({ section: "documents", evoProblemId: "", evoSpecialty: "", evoAuthorId: "" })}
-            className={selectedSection === "documents" ? "subindex-link active" : "subindex-link"}
-          >
-            Documentos/Estudios
-          </Link>
         </aside>
 
         <section>
-          {selectedSection === "evolutions" ? (
-            <>
+          <>
               <div className="card">
                 <h3 style={{ marginTop: 0 }}>Problemas activos</h3>
                 {patient.problems.length === 0 ? <p className="small">Sin problemas cargados.</p> : null}
@@ -411,43 +398,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                   </details>
                 </div>
               ) : null}
-            </>
-          ) : (
-            <div id="documents-section" className="card">
-              <h3 style={{ marginTop: 0 }}>Documentos/Estudios</h3>
-              <details open>
-                <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-                  Estudios cargados ({patient.documents.length})
-                </summary>
-                <div style={{ marginTop: 10 }}>
-                  {patient.documents.length === 0 ? <p className="small">Sin archivos cargados.</p> : null}
-                  {patient.documents.map((doc) => (
-                    <article key={doc.id} className="card" style={{ marginBottom: 8, padding: 10 }}>
-                      <p style={{ margin: 0 }}><strong>{doc.title}</strong></p>
-                      <p className="small" style={{ margin: "4px 0" }}>
-                        {doc.category} | {doc.fileName} | {(doc.fileSize / 1024).toFixed(1)} KB
-                      </p>
-                      <p className="small" style={{ margin: "4px 0" }}>
-                        Cargado: {new Date(doc.createdAt).toLocaleString("es-AR")} por {doc.uploadedBy?.fullName ?? "Sin dato"}
-                      </p>
-                      <a
-                        href={`/api/patients/documents/${doc.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ color: "#0d4f91", textDecoration: "underline" }}
-                      >
-                        Ver / Descargar
-                      </a>
-                    </article>
-                  ))}
-                </div>
-              </details>
-
-              <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
-                La carga de documentacion se encuentra deshabilitada.
-              </p>
-            </div>
-          )}
+          </>
         </section>
       </div>
     </div>

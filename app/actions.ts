@@ -709,7 +709,7 @@ export async function uploadPatientDocument(formData: FormData) {
   await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const patientId = (formData.get("patientId") ?? "").toString();
   if (patientId) {
-    redirect(`/patients/${patientId}?section=documents&error=document_upload_disabled#documents-section`);
+    redirect(`/patients/${patientId}?error=document_upload_disabled`);
   }
   redirect("/patients?error=document_upload_disabled");
 }
