@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createProblem, updateEncounter, updatePatient, uploadPatientDocument } from "@/app/actions";
+import { createProblem, updateEncounter, updatePatient } from "@/app/actions";
 import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -79,7 +79,8 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     evolution_invalid: "No se pudo guardar la evolucion. Revisa motivo y fecha.",
     evolution_edit_invalid: "No se pudo guardar la edicion. Revisa los campos obligatorios.",
     evolution_date: "La fecha/hora no es valida.",
-    evolution_problem_invalid: "Si cargas un problema nuevo desde la evolucion, debe tener al menos 3 caracteres."
+    evolution_problem_invalid: "Si cargas un problema nuevo desde la evolucion, debe tener al menos 3 caracteres.",
+    document_upload_disabled: "La carga de documentacion esta deshabilitada."
   };
   const selectedProblemCardId = query.problemId ?? "";
   const evoAuthorId = query.evoAuthorId ?? "";
@@ -442,40 +443,9 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                 </div>
               </details>
 
-              {canWorkClinical ? (
-                <details style={{ marginTop: 10 }} open>
-                  <summary style={{ cursor: "pointer", fontWeight: 600 }}>Cargar nuevo estudio</summary>
-                  <p className="small">Soporta JPG, PNG y PDF. En celular podes sacar foto directa para subirla.</p>
-                  <form action={uploadPatientDocument}>
-                    <input type="hidden" name="patientId" value={patient.id} />
-                    <div className="grid">
-                      <div>
-                        <label>Titulo</label>
-                        <input name="title" required placeholder="Ej: Rx Torax 03/2026" />
-                      </div>
-                      <div>
-                        <label>Categoria</label>
-                        <select name="category" defaultValue="Estudio">
-                          <option value="Estudio">Estudio</option>
-                          <option value="Documento">Documento</option>
-                          <option value="Imagen">Imagen</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label>Archivo</label>
-                        <input
-                          type="file"
-                          name="file"
-                          accept="image/*,application/pdf,.jpg,.jpeg,.png,.pnp"
-                          capture="environment"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <button style={{ marginTop: 10 }} type="submit">Subir archivo</button>
-                  </form>
-                </details>
-              ) : null}
+              <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
+                La carga de documentacion se encuentra deshabilitada.
+              </p>
             </div>
           )}
         </section>

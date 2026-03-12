@@ -706,55 +706,10 @@ export async function createUserByAdmin(formData: FormData) {
 }
 
 export async function uploadPatientDocument(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
-  const parsed = uploadDocumentSchema.safeParse({
-    patientId: formData.get("patientId"),
-    title: formData.get("title"),
-    category: formData.get("category")
-  });
-  if (!parsed.success) throw new Error("Datos de documento invalidos");
-
-  const fileValue = formData.get("file");
-  if (!(fileValue instanceof File) || fileValue.size <= 0) throw new Error("Debe seleccionar un archivo");
-
-  const allowedMime = ["application/pdf", "image/jpeg", "image/png"];
-  const extension = fileValue.name.split(".").pop()?.toLowerCase() ?? "";
-  const allowedExtensions = ["pdf", "jpg", "jpeg", "png", "pnp"];
-  const isAllowed = allowedMime.includes(fileValue.type) || allowedExtensions.includes(extension);
-  if (!isAllowed) throw new Error("Formato no permitido. Solo PDF, JPG, PNG o PNP");
-  if (fileValue.size > 8 * 1024 * 1024) throw new Error("Archivo demasiado grande (maximo 8MB)");
-
-  const bytes = Buffer.from(await fileValue.arrayBuffer());
-  const created = await prisma.patientDocument.create({
-    data: {
-      patientId: parsed.data.patientId,
-      uploadedById: actor.id,
-      title: parsed.data.title,
-      fileName: fileValue.name,
-      mimeType: fileValue.type || (extension === "pdf" ? "application/pdf" : "image/png"),
-      fileSize: fileValue.size,
-      content: bytes,
-      category: parsed.data.category?.trim() || "Estudio"
-    }
-  });
-
-  await createAuditLog({
-    actorId: actor.id,
-    actorRole: actor.role,
-    action: "UPLOAD_DOCUMENT",
-    entity: "PatientDocument",
-    entityId: created.id,
-    patientId: created.patientId,
-    after: {
-      title: created.title,
-      category: created.category,
-      fileName: created.fileName,
-      fileSize: created.fileSize,
-      mimeType: created.mimeType
-    }
-  });
-
-  revalidatePath(`/patients/${parsed.data.patientId}`);
-  revalidatePath("/audit");
-  redirect(`/patients/${parsed.data.patientId}#documents-section`);
+  await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const patientId = (formData.get("patientId") ?? "").toString();
+  if (patientId) {
+    redirect(`/patients/${patientId}?section=documents&error=document_upload_disabled#documents-section`);
+  }
+  redirect("/patients?error=document_upload_disabled");
 }
