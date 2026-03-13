@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createProblem, deleteEncounter, updateEncounter, updatePatient } from "@/app/actions";
 import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
+import FormattedEvolutionText from "@/components/formatted-evolution-text";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -292,7 +293,11 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                     <p className="small">Profesional: {encounter.author?.fullName ?? "Sin dato"} | Especialidad: {specialtyOfEncounter(encounter)}</p>
                     <p style={{ margin: "4px 0" }}><strong>Motivo:</strong> {encounter.reason}</p>
                     <p style={{ margin: "4px 0" }}><strong>Plan:</strong> {encounter.plan}</p>
-                    {encounter.content ? <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{encounter.content}</p> : null}
+                    {encounter.content ? (
+                      <p style={{ marginBottom: 0 }}>
+                        <FormattedEvolutionText text={encounter.content} />
+                      </p>
+                    ) : null}
                     {canDeleteEncounter ? (
                       <details style={{ marginTop: 8 }}>
                         <summary className="small" style={{ cursor: "pointer", color: "#b3261e" }}>
@@ -350,7 +355,11 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                     </p>
                     <p><strong>Motivo:</strong> {encounter.reason}</p>
                     <p><strong>Plan:</strong> {encounter.plan}</p>
-                    {encounter.content ? <p style={{ whiteSpace: "pre-wrap" }}>{encounter.content}</p> : null}
+                    {encounter.content ? (
+                      <p>
+                        <FormattedEvolutionText text={encounter.content} />
+                      </p>
+                    ) : null}
                     {canWorkClinical ? (
                       <details>
                         <summary className="small" style={{ cursor: "pointer" }}>Editar evolucion</summary>

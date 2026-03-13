@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createEncounter } from "@/app/actions";
 
 type ProblemOption = {
@@ -37,6 +37,7 @@ export default function EvolutionComposeDrawer({ patientId, problems }: Props) {
   const [draft, setDraft] = useState<EvolutionDraft>(EMPTY_DRAFT);
   const [isHydrated, setIsHydrated] = useState(false);
   const [lastSavedText, setLastSavedText] = useState("");
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const storageKey = useMemo(() => `hcv_evolution_draft_${patientId}`, [patientId]);
 
@@ -85,6 +86,38 @@ export default function EvolutionComposeDrawer({ patientId, problems }: Props) {
     setDraft(EMPTY_DRAFT);
     setLastSavedText("");
     window.localStorage.removeItem(storageKey);
+  }
+
+  function applyInlineFormat(type: "bold" | "underline") {
+    const textarea = contentRef.current;
+    if (!textarea) return;
+
+    const marker = type === "bold" ? "**" : "__";
+    const fallback = type === "bold" ? "texto en negrita" : "texto subrayado";
+
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? start;
+    let nextSelectionStart = start + marker.length;
+    let nextSelectionEnd = end + marker.length;
+
+    setDraft((prev) => {
+      const current = prev.content ?? "";
+      const safeStart = Math.max(0, Math.min(start, current.length));
+      const safeEnd = Math.max(safeStart, Math.min(end, current.length));
+      const selected = current.slice(safeStart, safeEnd);
+      const text = selected || fallback;
+      nextSelectionStart = safeStart + marker.length;
+      nextSelectionEnd = nextSelectionStart + text.length;
+      return {
+        ...prev,
+        content: `${current.slice(0, safeStart)}${marker}${text}${marker}${current.slice(safeEnd)}`
+      };
+    });
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
   }
 
   return (
@@ -185,7 +218,27 @@ export default function EvolutionComposeDrawer({ patientId, problems }: Props) {
 
                   <div style={{ marginBottom: 8 }}>
                     <label>Texto libre de evolucion</label>
+                    <div className="row" style={{ margin: "6px 0" }}>
+                      <button
+                        type="button"
+                        style={{ width: "auto", padding: "6px 10px", background: "#3e637f" }}
+                        onClick={() => applyInlineFormat("bold")}
+                      >
+                        <strong>B</strong> Negrita
+                      </button>
+                      <button
+                        type="button"
+                        style={{ width: "auto", padding: "6px 10px", background: "#4f748e" }}
+                        onClick={() => applyInlineFormat("underline")}
+                      >
+                        <u>U</u> Subrayado
+                      </button>
+                    </div>
+                    <p className="small" style={{ margin: "0 0 6px" }}>
+                      Selecciona un texto y aplica formato. Tambien puedes escribir luego de presionar el boton.
+                    </p>
                     <textarea
+                      ref={contentRef}
                       name="content"
                       rows={10}
                       value={draft.content}

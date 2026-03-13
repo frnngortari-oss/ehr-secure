@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { deleteEncounter } from "@/app/actions";
+import FormattedEvolutionText from "@/components/formatted-evolution-text";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -120,7 +121,9 @@ export default async function EvolutionsPage({ searchParams }: Props) {
             </p>
             <p><strong>Motivo:</strong> {ev.reason}</p>
             <p className="small">Profesional: {ev.author?.fullName ?? "Sin dato"}</p>
-            <p style={{ whiteSpace: "pre-wrap" }}>{ev.content ?? ev.assessment}</p>
+            <p>
+              <FormattedEvolutionText text={ev.content ?? ev.assessment} />
+            </p>
             <Link href={`/patients/${ev.patientId}`}>Ir a ficha del paciente</Link>
             {canDeleteEncounter ? (
               <details style={{ marginTop: 8 }}>
