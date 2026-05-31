@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { updateAppointmentStatus } from "@/app/actions";
+import { deleteAppointment, updateAppointmentStatus } from "@/app/actions";
 import AgendaHourlyBoard from "@/components/agenda-hourly-board";
 import SubmitButton from "@/components/submit-button";
 import { requireRole } from "@/lib/auth";
@@ -395,6 +395,19 @@ export default async function AgendaPage({ searchParams }: Props) {
                 <SubmitButton pendingText="...">Cancelar</SubmitButton>
               </form>
             </div>
+            <details style={{ marginTop: 10 }}>
+              <summary className="small" style={{ cursor: "pointer", color: "#b3261e" }}>
+                Eliminar turno cargado por error
+              </summary>
+              <form action={deleteAppointment} style={{ marginTop: 8 }}>
+                <input type="hidden" name="appointmentId" value={appt.id} />
+                <label>Motivo de eliminacion</label>
+                <textarea name="deleteReason" rows={2} required placeholder="Ej: Turno duplicado o paciente incorrecto" />
+                <SubmitButton pendingText="Eliminando..." style={{ marginTop: 8, background: "#b3261e" }}>
+                  Eliminar turno
+                </SubmitButton>
+              </form>
+            </details>
           </article>
         ))}
       </section>

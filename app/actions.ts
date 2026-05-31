@@ -99,6 +99,11 @@ const appointmentStatusSchema = z.object({
   status: z.enum(["PENDIENTE", "ATENDIDO", "AUSENTE", "CANCELADO"])
 });
 
+const appointmentDeleteSchema = z.object({
+  appointmentId: z.string().uuid(),
+  deleteReason: z.string().trim().min(3)
+});
+
 const adminUserCreateSchema = z.object({
   email: z.string().min(3),
   fullName: z.string().min(3),
@@ -705,6 +710,42 @@ export async function updateAppointmentStatus(formData: FormData) {
   });
 
   revalidatePath("/agenda");
+  revalidatePath("/audit");
+}
+
+export async function deleteAppointment(formData: FormData) {
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const parsed = appointmentDeleteSchema.safeParse({
+    appointmentId: formData.get("appointmentId"),
+    deleteReason: formData.get("deleteReason")
+  });
+  if (!parsed.success) throw new Error("Datos de eliminacion de turno invalidos");
+
+  const previous = await prisma.appointment.findUnique({
+    where: { id: parsed.data.appointmentId }
+  });
+  if (!previous) throw new Error("Turno no encontrado");
+  if (previous.clinicianId !== actor.id && actor.role !== "ADMIN") {
+    throw new Error("No autorizado para eliminar turnos de otro usuario");
+  }
+
+  await prisma.appointment.delete({
+    where: { id: parsed.data.appointmentId }
+  });
+
+  await createAuditLog({
+    actorId: actor.id,
+    actorRole: actor.role,
+    action: "DELETE_APPOINTMENT",
+    entity: "Appointment",
+    entityId: previous.id,
+    patientId: previous.patientId,
+    before: previous,
+    after: { deleted: true, deleteReason: parsed.data.deleteReason }
+  });
+
+  revalidatePath("/agenda");
+  revalidatePath(`/patients/${previous.patientId}`);
   revalidatePath("/audit");
 }
 
