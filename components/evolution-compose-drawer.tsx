@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createEncounter } from "@/app/actions";
+import SubmitButton from "@/components/submit-button";
 
 type ProblemOption = {
   id: string;
@@ -258,7 +259,7 @@ export default function EvolutionComposeDrawer({ patientId, problems }: Props) {
                     />
                   </div>
 
-                  <button type="submit">Guardar evolucion</button>
+                  <SubmitButton>Guardar evolucion</SubmitButton>
                 </form>
               </div>
             </>

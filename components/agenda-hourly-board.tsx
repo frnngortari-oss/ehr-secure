@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createAppointment } from "@/app/actions";
+import SubmitButton from "@/components/submit-button";
 
 type HourItem = {
   id: string;
@@ -332,7 +333,7 @@ export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, defaultPati
                 <a href="/patients/new" className="small" style={{ color: "#0d4f91", textDecoration: "underline" }}>
                   Alta completa de paciente
                 </a>
-                <button type="submit" style={{ width: "auto" }}>Guardar turno</button>
+                <SubmitButton style={{ width: "auto" }}>Guardar turno</SubmitButton>
               </div>
             </form>
           </div>

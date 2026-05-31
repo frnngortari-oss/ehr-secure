@@ -282,6 +282,38 @@ button:hover {
   filter: brightness(0.96);
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.page-loading {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  height: 3px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.page-loading-bar {
+  width: 45%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0a86b8, #32b68a);
+  animation: loading-slide 0.9s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(240%);
+  }
+}
+
 label {
   font-weight: 600;
   font-size: 14px;

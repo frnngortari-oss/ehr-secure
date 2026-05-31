@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { updateAppointmentStatus } from "@/app/actions";
 import AgendaHourlyBoard from "@/components/agenda-hourly-board";
+import SubmitButton from "@/components/submit-button";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -114,7 +115,8 @@ export default async function AgendaPage({ searchParams }: Props) {
         select: { id: true, firstName: true, lastName: true, nationalId: true }
       })
     : Promise.resolve(null);
-  const [appointments, monthAppointments, appointmentsOfDay, selectedPatient] = await Promise.all([
+  const isSingleDay = dateFrom === dateTo;
+  const [appointments, monthAppointments, appointmentsOfSelectedDay, selectedPatient] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         clinicianId: actor.id,
@@ -142,25 +144,28 @@ export default async function AgendaPage({ searchParams }: Props) {
       },
       select: { scheduledAt: true }
     }),
-    prisma.appointment.findMany({
-      where: {
-        clinicianId: actor.id,
-        scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
-        patient: params.q
-          ? {
-              OR: [
-                { firstName: { contains: params.q, mode: "insensitive" } },
-                { lastName: { contains: params.q, mode: "insensitive" } },
-                { nationalId: { contains: params.q } }
-              ]
-            }
-          : undefined
-      },
-      include: { patient: true },
-      orderBy: { scheduledAt: "asc" }
-    }),
+    isSingleDay
+      ? Promise.resolve(null)
+      : prisma.appointment.findMany({
+          where: {
+            clinicianId: actor.id,
+            scheduledAt: { gte: selectedDayStart, lte: selectedDayEnd },
+            patient: params.q
+              ? {
+                  OR: [
+                    { firstName: { contains: params.q, mode: "insensitive" } },
+                    { lastName: { contains: params.q, mode: "insensitive" } },
+                    { nationalId: { contains: params.q } }
+                  ]
+                }
+              : undefined
+          },
+          include: { patient: true },
+          orderBy: { scheduledAt: "asc" }
+        }),
     selectedPatientPromise
   ]);
+  const appointmentsOfDay = appointmentsOfSelectedDay ?? appointments;
 
   const byDay = new Map<string, number>();
   for (const appt of monthAppointments) {
@@ -377,17 +382,17 @@ export default async function AgendaPage({ searchParams }: Props) {
               <form action={updateAppointmentStatus}>
                 <input type="hidden" name="appointmentId" value={appt.id} />
                 <input type="hidden" name="status" value="ATENDIDO" />
-                <button type="submit">Atendido</button>
+                <SubmitButton pendingText="...">Atendido</SubmitButton>
               </form>
               <form action={updateAppointmentStatus}>
                 <input type="hidden" name="appointmentId" value={appt.id} />
                 <input type="hidden" name="status" value="AUSENTE" />
-                <button type="submit">Ausente</button>
+                <SubmitButton pendingText="...">Ausente</SubmitButton>
               </form>
               <form action={updateAppointmentStatus}>
                 <input type="hidden" name="appointmentId" value={appt.id} />
                 <input type="hidden" name="status" value="CANCELADO" />
-                <button type="submit">Cancelar</button>
+                <SubmitButton pendingText="...">Cancelar</SubmitButton>
               </form>
             </div>
           </article>

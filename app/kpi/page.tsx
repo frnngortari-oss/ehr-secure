@@ -61,10 +61,10 @@ export default async function KpiPage({ searchParams }: Props) {
 
   const [
     appointmentsCurrent,
-    appointmentsPrevious,
+    appointmentsPreviousCount,
     appointmentsSixMonths,
     encountersCurrent,
-    encountersPrevious,
+    encountersPreviousCount,
     encountersSixMonths,
     problemsAll,
     activeProblemsRecent
@@ -73,9 +73,8 @@ export default async function KpiPage({ searchParams }: Props) {
       where: { scheduledAt: { gte: current.start, lte: current.end } },
       select: { id: true, status: true, scheduledAt: true, agendaName: true }
     }),
-    prisma.appointment.findMany({
-      where: { scheduledAt: { gte: previous.start, lte: previous.end } },
-      select: { id: true }
+    prisma.appointment.count({
+      where: { scheduledAt: { gte: previous.start, lte: previous.end } }
     }),
     prisma.appointment.findMany({
       where: { scheduledAt: { gte: sixMonthsStart } },
@@ -91,9 +90,8 @@ export default async function KpiPage({ searchParams }: Props) {
         authorSpecialty: true
       }
     }),
-    prisma.encounter.findMany({
-      where: { occurredAt: { gte: previous.start, lte: previous.end } },
-      select: { id: true }
+    prisma.encounter.count({
+      where: { occurredAt: { gte: previous.start, lte: previous.end } }
     }),
     prisma.encounter.findMany({
       where: { occurredAt: { gte: sixMonthsStart } },
@@ -161,9 +159,9 @@ export default async function KpiPage({ searchParams }: Props) {
 
   const monthRows = [...monthStats.values()];
   const totalTurnosMes = appointmentsCurrent.length;
-  const turnosMesPrevio = appointmentsPrevious.length;
+  const turnosMesPrevio = appointmentsPreviousCount;
   const totalEvolucionesMes = encountersCurrent.length;
-  const evolucionesMesPrevio = encountersPrevious.length;
+  const evolucionesMesPrevio = encountersPreviousCount;
 
   const atendidosMes = appointmentsCurrent.filter((a) => a.status === "ATENDIDO").length;
   const ausentesMes = appointmentsCurrent.filter((a) => a.status === "AUSENTE").length;

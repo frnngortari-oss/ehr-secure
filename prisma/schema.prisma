@@ -88,6 +88,8 @@ model Encounter {
   author  User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([patientId, createdAt])
+  @@index([patientId, occurredAt])
+  @@index([authorId, occurredAt])
   @@index([occurredAt])
 }
 
@@ -125,6 +127,7 @@ model Appointment {
   clinician User?   @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
 
   @@index([scheduledAt, status])
+  @@index([clinicianId, scheduledAt])
   @@index([patientId, scheduledAt])
 }
 
@@ -144,6 +147,8 @@ model Problem {
   encounters Encounter[]
 
   @@index([patientId, isActive])
+  @@index([category])
+  @@index([isActive, startedAt])
 }
 
 model AuditLog {
@@ -161,6 +166,7 @@ model AuditLog {
   patient Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
+  @@index([actorId, createdAt])
   @@index([entity, entityId])
   @@index([patientId, createdAt])
 }
