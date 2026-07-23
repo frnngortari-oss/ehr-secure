@@ -21,6 +21,14 @@ function sign(value: string, secret: string): string {
   return createHmac("sha256", secret).update(value).digest("hex");
 }
 
+function base64UrlEncode(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url");
+}
+
+function base64UrlDecode(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
 function safeEqualHex(aHex: string, bHex: string): boolean {
   const a = Buffer.from(aHex, "hex");
   const b = Buffer.from(bHex, "hex");
@@ -28,15 +36,49 @@ function safeEqualHex(aHex: string, bHex: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export function createSessionToken(userId: string, secret: string, maxAgeSeconds = 60 * 60 * 12): string {
+export type SessionTokenPayload = {
+  userId: string;
+  email?: string;
+  fullName?: string;
+  role?: string;
+  medicalSpecialty?: string | null;
+};
+
+export function createSessionToken(payloadInput: string | SessionTokenPayload, secret: string, maxAgeSeconds = 60 * 60 * 12): string {
   const exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
-  const payload = `${userId}.${exp}`;
+  if (typeof payloadInput === "string") {
+    const payload = `${payloadInput}.${exp}`;
+    const signature = sign(payload, secret);
+    return `${payload}.${signature}`;
+  }
+
+  const encoded = base64UrlEncode(JSON.stringify({ ...payloadInput, exp, v: 2 }));
+  const payload = `v2.${encoded}`;
   const signature = sign(payload, secret);
   return `${payload}.${signature}`;
 }
 
-export function verifySessionToken(token: string, secret: string): { userId: string; exp: number } | null {
-  const [userId, expRaw, signature] = token.split(".");
+export function verifySessionToken(token: string, secret: string): (SessionTokenPayload & { exp: number; v?: number }) | null {
+  const parts = token.split(".");
+
+  if (parts[0] === "v2") {
+    const [version, encoded, signature] = parts;
+    if (!version || !encoded || !signature) return null;
+
+    const payload = `${version}.${encoded}`;
+    const expectedSignature = sign(payload, secret);
+    if (!safeEqualHex(signature, expectedSignature)) return null;
+
+    try {
+      const decoded = JSON.parse(base64UrlDecode(encoded)) as SessionTokenPayload & { exp?: number; v?: number };
+      if (!decoded.userId || !decoded.exp || decoded.exp < Math.floor(Date.now() / 1000)) return null;
+      return { ...decoded, exp: decoded.exp };
+    } catch {
+      return null;
+    }
+  }
+
+  const [userId, expRaw, signature] = parts;
   if (!userId || !expRaw || !signature) return null;
 
   const payload = `${userId}.${expRaw}`;

@@ -198,7 +198,13 @@ export async function login(formData: FormData) {
     after: { email: user.email }
   });
 
-  await setSession(user.id);
+  await setSession({
+    userId: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role,
+    medicalSpecialty: user.medicalSpecialty
+  });
   redirect("/");
 }
 

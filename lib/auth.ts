@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSessionToken, verifySessionToken } from "@/lib/security";
+import { createSessionToken, verifySessionToken, type SessionTokenPayload } from "@/lib/security";
 
 export const SESSION_COOKIE = "ehr_session";
 const SESSION_MAX_AGE = 60 * 60 * 3;
@@ -25,8 +25,8 @@ function getAuthSecret() {
   return secret;
 }
 
-export async function setSession(userId: string) {
-  const token = createSessionToken(userId, getAuthSecret(), SESSION_MAX_AGE);
+export async function setSession(user: string | SessionTokenPayload) {
+  const token = createSessionToken(user, getAuthSecret(), SESSION_MAX_AGE);
   const store = await cookies();
 
   store.set(SESSION_COOKIE, token, {
@@ -50,6 +50,15 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const decoded = verifySessionToken(token, getAuthSecret());
   if (!decoded) return null;
+  if (decoded.v === 2 && decoded.email && decoded.fullName && decoded.role && roleValues.includes(decoded.role as Role)) {
+    return {
+      id: decoded.userId,
+      email: decoded.email,
+      fullName: decoded.fullName,
+      role: decoded.role as Role,
+      medicalSpecialty: decoded.medicalSpecialty ?? null
+    };
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: decoded.userId },
