@@ -73,9 +73,49 @@ body {
   color: var(--text);
 }
 
+html.is-route-pending,
+html.is-route-pending * {
+  cursor: progress;
+}
+
 a {
   color: inherit;
   text-decoration: none;
+}
+
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  width: 100%;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+  transition: opacity 0.12s ease;
+}
+
+.route-progress::before {
+  content: "";
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0a86b8, #32b68a);
+  transform: translateX(-110%);
+}
+
+html.is-route-pending .route-progress {
+  opacity: 1;
+}
+
+html.is-route-pending .route-progress::before {
+  animation: loading-slide 0.85s ease-in-out infinite;
+}
+
+html.is-route-pending .app-main {
+  transition: opacity 0.12s ease;
 }
 
 .app-shell {

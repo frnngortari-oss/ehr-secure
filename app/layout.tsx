@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions";
 import SidebarNav from "@/components/sidebar-nav";
 import PwaRegister from "@/components/pwa-register";
+import RouteTransitionIndicator from "@/components/route-transition-indicator";
 
 export const metadata: Metadata = {
   title: "Historia Clinica Virtual",
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" data-theme="oceano">
       <body>
         <PwaRegister />
+        <RouteTransitionIndicator />
         <div className={user ? "app-shell with-sidebar" : "app-shell"}>
           {user ? <input id="sidebar-toggle" className="sidebar-toggle-input" type="checkbox" /> : null}
           {user ? (

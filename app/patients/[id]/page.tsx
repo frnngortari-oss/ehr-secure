@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createProblem, deleteEncounter, updateEncounter, updatePatient } from "@/app/actions";
 import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
 import FormattedEvolutionText from "@/components/formatted-evolution-text";
+import SubmitButton from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -199,7 +200,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
               </div>
             </div>
             <div className="row" style={{ marginTop: 12 }}>
-              <button type="submit">Guardar cambios</button>
+              <SubmitButton>Guardar cambios</SubmitButton>
             </div>
           </form>
         </div>
@@ -309,7 +310,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                           <input type="hidden" name="returnTo" value={currentPatientHref} />
                           <label>Motivo de eliminacion (obligatorio)</label>
                           <textarea name="deleteReason" rows={2} required placeholder="Ej: Evolucion cargada al paciente incorrecto" />
-                          <button style={{ marginTop: 8, background: "#b3261e" }} type="submit">Confirmar eliminacion</button>
+                          <SubmitButton pendingText="Eliminando..." style={{ marginTop: 8, background: "#b3261e" }}>Confirmar eliminacion</SubmitButton>
                         </form>
                       </details>
                     ) : null}
@@ -342,7 +343,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                     </select>
                   </div>
                   <div className="row" style={{ alignItems: "flex-end" }}>
-                    <button type="submit">Aplicar</button>
+                    <SubmitButton pendingText="Aplicando...">Aplicar</SubmitButton>
                   </div>
                 </form>
 
@@ -397,7 +398,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                             <label>Motivo de la edicion (obligatorio)</label>
                             <textarea name="editReason" rows={2} required placeholder="Ej: Correccion de dato clinico" />
                           </div>
-                          <button style={{ marginTop: 8 }} type="submit">Guardar edicion</button>
+                          <SubmitButton style={{ marginTop: 8 }}>Guardar edicion</SubmitButton>
                         </form>
                       </details>
                     ) : null}
@@ -412,7 +413,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                           <input type="hidden" name="returnTo" value={currentPatientHref} />
                           <label>Motivo de eliminacion (obligatorio)</label>
                           <textarea name="deleteReason" rows={2} required placeholder="Ej: Evolucion cargada al paciente incorrecto" />
-                          <button style={{ marginTop: 8, background: "#b3261e" }} type="submit">Confirmar eliminacion</button>
+                          <SubmitButton pendingText="Eliminando..." style={{ marginTop: 8, background: "#b3261e" }}>Confirmar eliminacion</SubmitButton>
                         </form>
                       </details>
                     ) : null}
@@ -434,7 +435,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                         <label>Categoria</label>
                         <input name="category" defaultValue="Problema" />
                       </div>
-                      <button type="submit">Agregar problema</button>
+                      <SubmitButton>Agregar problema</SubmitButton>
                     </form>
                   </details>
                 </div>

@@ -265,7 +265,7 @@ export default async function AgendaPage({ searchParams }: Props) {
           <label>Buscar paciente</label>
           <input name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido o DNI" />
           <div className="row" style={{ marginTop: 10 }}>
-            <button type="submit">Aplicar</button>
+            <SubmitButton pendingText="Aplicando...">Aplicar</SubmitButton>
           </div>
         </form>
 

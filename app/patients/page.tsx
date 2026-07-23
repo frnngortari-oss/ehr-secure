@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
+import SubmitButton from "@/components/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 
@@ -62,7 +63,7 @@ export default async function PatientsPage({ searchParams }: Props) {
             />
           </div>
           <div className="row">
-            <button type="submit">Buscar</button>
+            <SubmitButton pendingText="Buscando...">Buscar</SubmitButton>
             {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO" || user.role === "PSICOLOGO" || user.role === "FONOAUDIOLOGO" || user.role === "KINESIOLOGO" || user.role === "TERAPISTA_OCUPACIONAL") && (
               <Link href="/patients/new"><button type="button">Nuevo</button></Link>
             )}

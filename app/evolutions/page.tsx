@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deleteEncounter } from "@/app/actions";
 import FormattedEvolutionText from "@/components/formatted-evolution-text";
+import SubmitButton from "@/components/submit-button";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -100,7 +101,7 @@ export default async function EvolutionsPage({ searchParams }: Props) {
               ))}
             </select>
           </div>
-          <button type="submit">Filtrar</button>
+          <SubmitButton pendingText="Filtrando...">Filtrar</SubmitButton>
           <a href="/evolutions" className="small" style={{ marginLeft: 10, textDecoration: "underline", color: "#0d4f91" }}>
             Limpiar
           </a>
