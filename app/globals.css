@@ -1,15 +1,17 @@
 :root {
-  --bg: #edf2f7;
-  --bg-gradient: radial-gradient(circle at 10% 10%, #ffffff 0, #edf2f7 50%, #e8eef5 100%);
+  --bg: #eaf4f8;
+  --bg-gradient: radial-gradient(circle at 82% 0%, rgba(80, 190, 206, 0.16), transparent 32%), linear-gradient(145deg, #f7fcfd 0%, #eaf4f8 54%, #e5f0f5 100%);
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --border: #d7e0ea;
-  --text: #132235;
-  --muted: #546375;
-  --primary: #1f6fba;
+  --surface-soft: #f4f9fb;
+  --border: #d0e0e7;
+  --text: #15313e;
+  --muted: #56707d;
+  --primary: #087fa7;
+  --primary-strong: #056181;
+  --focus-ring: rgba(8, 127, 167, 0.2);
   --topbar-bg: rgba(255, 255, 255, 0.8);
   --brand-color: #27405c;
-  --sidebar: #f6f8fb;
+  --sidebar: rgba(244, 250, 252, 0.92);
   --success: #198754;
   --warning: #d9822b;
   --danger: #b3261e;
@@ -68,9 +70,10 @@ body {
 }
 
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Aptos", "Trebuchet MS", sans-serif;
   background: var(--bg-gradient);
   color: var(--text);
+  line-height: 1.45;
 }
 
 html.is-route-pending,
@@ -140,6 +143,7 @@ html.is-route-pending .app-main {
   top: 0;
   height: 100dvh;
   overflow-y: auto;
+  backdrop-filter: blur(14px);
 }
 
 .sidebar-toggle-btn {
@@ -178,8 +182,11 @@ html.is-route-pending .app-main {
 
 .brand-block h1 {
   margin: 0 0 6px;
-  font-size: 24px;
-  letter-spacing: 0.3px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  line-height: 1.08;
+  letter-spacing: -0.3px;
+  color: var(--brand-color);
 }
 
 .brand-block .small {
@@ -216,6 +223,7 @@ html.is-route-pending .app-main {
   border-radius: 10px;
   color: #344155;
   border: 1px solid transparent;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .sidebar-link:hover {
@@ -224,10 +232,11 @@ html.is-route-pending .app-main {
 }
 
 .sidebar-link.active {
-  background: #e7f0fb;
-  border-color: #bfd5ee;
-  color: #0d4f91;
+  background: linear-gradient(105deg, #dff3f8, #eaf7fa);
+  border-color: #b7dfe8;
+  color: #075f7c;
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .sidebar-icon {
@@ -249,12 +258,16 @@ html.is-route-pending .app-main {
   padding: 14px 22px;
   border-bottom: 1px solid var(--border);
   background: var(--topbar-bg);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .brand-mobile {
   font-weight: 700;
   color: var(--brand-color);
+  letter-spacing: -0.2px;
 }
 
 .theme-select {
@@ -268,16 +281,19 @@ html.is-route-pending .app-main {
 }
 
 .page-content {
-  padding: 20px 22px;
+  width: 100%;
+  max-width: 1600px;
+  padding: 22px 24px 32px;
+  margin-inline: auto;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 16px;
   margin-bottom: 14px;
-  box-shadow: 0 3px 12px rgba(18, 44, 75, 0.04);
+  box-shadow: 0 8px 24px rgba(18, 58, 73, 0.055);
 }
 
 .grid {
@@ -307,19 +323,58 @@ button {
   width: 100%;
   padding: 10px;
   border: 1px solid #ccd6e0;
-  border-radius: 8px;
+  border-radius: 10px;
   font: inherit;
 }
 
+input,
+textarea,
+select {
+  background: #fff;
+  color: var(--text);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
+}
+
 button {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: #fff;
   border: 0;
   cursor: pointer;
+  font-weight: 700;
+  transition: filter 0.12s ease, transform 0.12s ease;
 }
 
 button:hover {
   filter: brightness(0.96);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.button {
+  display: inline-flex;
+  width: auto;
+  min-height: 42px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.button-secondary {
+  border: 1px solid #aad1dc;
+  background: #eff9fb;
+  color: #086783;
 }
 
 button:disabled {
@@ -362,6 +417,297 @@ label {
 .small {
   font-size: 13px;
   color: var(--muted);
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-heading h3,
+.patients-toolbar h2,
+.patient-profile-header h2 {
+  margin: 0;
+  letter-spacing: -0.35px;
+}
+
+.result-count {
+  min-width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #e4f4f8;
+  color: #076682;
+  font-weight: 800;
+}
+
+.patients-toolbar {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.7fr) minmax(420px, 1.3fr);
+  gap: 28px;
+  align-items: end;
+  padding: 20px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.98), rgba(238, 249, 251, 0.98));
+}
+
+.patients-toolbar .small {
+  margin: 4px 0 0;
+}
+
+.patient-search-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.patient-search-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.patient-search-actions button {
+  width: auto;
+  min-width: 94px;
+}
+
+.patients-results {
+  padding: 20px;
+}
+
+.patient-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 10px;
+}
+
+.patient-card {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #fff, #f9fcfd);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.patient-card:hover {
+  border-color: #8fc8d6;
+  box-shadow: 0 9px 22px rgba(17, 100, 124, 0.1);
+  transform: translateY(-1px);
+}
+
+.patient-avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #d7f0f5, #bfe2eb);
+  color: #075e79;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.patient-card-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.patient-card-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.patient-card-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-card-title > span {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.patient-card-meta,
+.patient-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  margin: 5px 0 9px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.patient-card-meta span + span::before,
+.patient-profile-meta span + span::before {
+  content: "·";
+  margin-right: 14px;
+  color: #9ab0ba;
+}
+
+.patient-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(120deg, #fff 0%, #f0fafc 100%);
+}
+
+.patient-avatar-large {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+  border-radius: 18px;
+  font-size: 19px;
+}
+
+.patient-edit-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.patient-edit-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.patient-edit-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.patient-edit-panel > summary > span:first-child {
+  display: grid;
+}
+
+.patient-edit-panel > summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.patient-edit-panel .edit-action {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.patient-edit-panel[open] .edit-action::after {
+  content: " datos";
+}
+
+.patient-edit-panel form {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+
+.evolution-card {
+  --profession-color: #718096;
+  --profession-soft: #f3f5f7;
+  position: relative;
+  overflow: hidden;
+  border-left: 5px solid var(--profession-color);
+}
+
+.evolution-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 72px;
+  background: linear-gradient(90deg, var(--profession-soft), transparent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.evolution-card > * {
+  position: relative;
+}
+
+.profession-medico {
+  --profession-color: #1483b8;
+  --profession-soft: #dff3fb;
+}
+
+.profession-psicologo {
+  --profession-color: #b56a20;
+  --profession-soft: #fff0dc;
+}
+
+.profession-fonoaudiologo {
+  --profession-color: #7b5bb5;
+  --profession-soft: #eee8fa;
+}
+
+.profession-kinesiologo {
+  --profession-color: #27845b;
+  --profession-soft: #e0f4e9;
+}
+
+.profession-terapista-ocupacional {
+  --profession-color: #c04f72;
+  --profession-soft: #fbe5ec;
+}
+
+.profession-recepcion {
+  --profession-color: #66778a;
+  --profession-soft: #e9eef2;
+}
+
+.profession-admin {
+  --profession-color: #b23b3b;
+  --profession-soft: #fae4e4;
+}
+
+.evolution-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.evolution-card-head time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profession-badge {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--profession-soft);
+  color: var(--profession-color);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+}
+
+.evolution-author {
+  margin: 0 0 10px;
 }
 
 .row {
@@ -893,6 +1239,11 @@ label {
     padding: 14px;
   }
 
+  .patients-toolbar {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
   .split-layout,
   .two-col,
   .patient-layout {
@@ -944,5 +1295,62 @@ label {
 
   .hour-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-content {
+    padding: 10px;
+  }
+
+  .patients-toolbar,
+  .patients-results {
+    padding: 15px;
+  }
+
+  .patient-search-form {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-search-actions > * {
+    flex: 1;
+  }
+
+  .patient-search-actions button,
+  .patient-search-actions .button {
+    width: 100%;
+  }
+
+  .patient-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-profile-header {
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .patient-profile-meta {
+    display: grid;
+    gap: 2px;
+  }
+
+  .patient-profile-meta span + span::before {
+    content: none;
+  }
+
+  .evolution-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

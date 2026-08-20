@@ -4,6 +4,7 @@ import FormattedEvolutionText from "@/components/formatted-evolution-text";
 import SubmitButton from "@/components/submit-button";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { professionClassName, professionLabel } from "@/lib/profession";
 
 type SearchParams = {
   patient?: string;
@@ -44,10 +45,18 @@ export default async function EvolutionsPage({ searchParams }: Props) {
         : undefined,
       problem: params.category ? { category: params.category } : undefined
     },
-    include: {
-      patient: true,
-      author: { select: { fullName: true } },
-      problem: true
+    select: {
+      id: true,
+      patientId: true,
+      occurredAt: true,
+      reason: true,
+      content: true,
+      assessment: true,
+      authorRole: true,
+      authorSpecialty: true,
+      patient: { select: { firstName: true, lastName: true, nationalId: true } },
+      author: { select: { fullName: true, role: true, medicalSpecialty: true } },
+      problem: { select: { title: true, category: true } }
     },
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     take: 100
@@ -112,8 +121,13 @@ export default async function EvolutionsPage({ searchParams }: Props) {
         <h3 style={{ marginTop: 0 }}>Listado cronologico ({evolutions.length})</h3>
         {evolutions.length === 0 ? <p className="small">Sin registros con ese filtro.</p> : null}
         {evolutions.map((ev) => (
-          <article key={ev.id} className="card">
-            <p className="small">{new Date(ev.occurredAt).toLocaleString("es-AR")}</p>
+          <article key={ev.id} className={`card evolution-card ${professionClassName(ev.author?.role ?? ev.authorRole)}`}>
+            <div className="evolution-card-head">
+              <span className="profession-badge">
+                {professionLabel(ev.author?.role ?? ev.authorRole, ev.authorSpecialty ?? ev.author?.medicalSpecialty)}
+              </span>
+              <time>{new Date(ev.occurredAt).toLocaleString("es-AR")}</time>
+            </div>
             <p>
               <strong>Paciente:</strong> {ev.patient.lastName}, {ev.patient.firstName} ({ev.patient.nationalId})
             </p>

@@ -6,6 +6,7 @@ import FormattedEvolutionText from "@/components/formatted-evolution-text";
 import SubmitButton from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { professionClassName, professionLabel } from "@/lib/profession";
 
 type SearchParams = {
   section?: string;
@@ -26,16 +27,6 @@ function toDatetimeInputValue(value: Date) {
   return new Date(value).toISOString().slice(0, 16);
 }
 
-const roleLabels: Record<string, string> = {
-  MEDICO: "Medico",
-  PSICOLOGO: "Psicologia",
-  FONOAUDIOLOGO: "Fonoaudiologia",
-  KINESIOLOGO: "Kinesiologia",
-  TERAPISTA_OCUPACIONAL: "Terapia ocupacional",
-  RECEPCION: "Recepcion",
-  ADMIN: "Administrador"
-};
-
 export default async function PatientDetailPage({ params, searchParams }: Params) {
   const user = await requireUser();
   const { id } = await params;
@@ -43,16 +34,38 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
   const patient = await prisma.patient.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      nationalId: true,
+      birthDate: true,
+      sex: true,
+      email: true,
+      phone: true,
+      address: true,
       encounters: {
-        include: {
+        select: {
+          id: true,
+          patientId: true,
+          reason: true,
+          plan: true,
+          content: true,
+          assessment: true,
+          occurredAt: true,
+          createdAt: true,
+          problemId: true,
+          authorId: true,
+          authorRole: true,
+          authorSpecialty: true,
           author: { select: { fullName: true, role: true, medicalSpecialty: true } },
-          problem: true
+          problem: { select: { id: true, title: true, category: true } }
         },
         orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }]
       },
       problems: {
         where: { isActive: true },
+        select: { id: true, title: true, category: true, startedAt: true },
         orderBy: { startedAt: "desc" }
       }
     }
@@ -60,7 +73,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
   if (!patient) return notFound();
 
-  const canEditPatient = user.role === "ADMIN" || user.role === "RECEPCION";
+  const canEditPatient = true;
   const canWorkClinical =
     user.role === "ADMIN" ||
     user.role === "MEDICO" ||
@@ -77,6 +90,8 @@ export default async function PatientDetailPage({ params, searchParams }: Params
     evolution_edit_invalid: "No se pudo guardar la edicion. Revisa los campos obligatorios.",
     evolution_date: "La fecha/hora no es valida.",
     evolution_problem_invalid: "Si cargas un problema nuevo desde la evolucion, debe tener al menos 3 caracteres.",
+    patient_update_invalid: "No se pudieron guardar los datos personales. Revisa los campos obligatorios.",
+    patient_dni_exists: "No se pudo guardar: ya existe otro paciente con ese DNI.",
     document_upload_disabled: "La carga de documentacion esta deshabilitada."
   };
   const selectedProblemCardId = query.problemId ?? "";
@@ -86,10 +101,11 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
   const specialtyOfEncounter = (encounter: (typeof patient.encounters)[number]) => {
     if (encounter.authorSpecialty) return encounter.authorSpecialty;
-    if (encounter.author?.role === "MEDICO") return encounter.author.medicalSpecialty ?? "Medicina general";
-    if (encounter.author?.role) return roleLabels[encounter.author.role] ?? encounter.author.role;
-    return "Sin especialidad";
+    return professionLabel(encounter.author?.role ?? encounter.authorRole, encounter.author?.medicalSpecialty);
   };
+
+  const professionOfEncounter = (encounter: (typeof patient.encounters)[number]) =>
+    professionClassName(encounter.author?.role ?? encounter.authorRole);
 
   const availableSpecialties = Array.from(new Set(patient.encounters.map((encounter) => specialtyOfEncounter(encounter))));
 
@@ -150,15 +166,30 @@ export default async function PatientDetailPage({ params, searchParams }: Params
         </div>
       ) : null}
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>{patient.lastName}, {patient.firstName}</h2>
-        <p className="small">DNI: {patient.nationalId}</p>
-        <p className="small">Nacimiento: {new Date(patient.birthDate).toLocaleDateString("es-AR")}</p>
+      <div className="card patient-profile-header">
+        <span className="patient-avatar patient-avatar-large" aria-hidden="true">
+          {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
+        </span>
+        <div>
+          <p className="eyebrow">Historia clinica</p>
+          <h2>{patient.lastName}, {patient.firstName}</h2>
+          <div className="patient-profile-meta">
+            <span>DNI {patient.nationalId}</span>
+            <span>Nacimiento {new Date(patient.birthDate).toLocaleDateString("es-AR")}</span>
+            {patient.phone ? <span>{patient.phone}</span> : null}
+          </div>
+        </div>
       </div>
 
       {canEditPatient && (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Editar datos del paciente</h3>
+        <details className="card patient-edit-panel">
+          <summary>
+            <span>
+              <strong>Datos personales</strong>
+              <small>Editar contacto, DNI o fecha de nacimiento</small>
+            </span>
+            <span className="edit-action">Editar</span>
+          </summary>
           <form action={updatePatient}>
             <input type="hidden" name="patientId" value={patient.id} />
             <div className="grid">
@@ -203,7 +234,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
               <SubmitButton>Guardar cambios</SubmitButton>
             </div>
           </form>
-        </div>
+        </details>
       )}
 
       <div className="patient-layout">
@@ -289,9 +320,12 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                   <p className="small">No hay evoluciones asociadas a este problema.</p>
                 ) : null}
                 {linkedEncounters.map((encounter) => (
-                  <article key={encounter.id} className="card" style={{ marginBottom: 8, padding: 10 }}>
-                    <p className="small">{new Date(encounter.occurredAt).toLocaleString("es-AR")}</p>
-                    <p className="small">Profesional: {encounter.author?.fullName ?? "Sin dato"} | Especialidad: {specialtyOfEncounter(encounter)}</p>
+                  <article key={encounter.id} className={`card evolution-card ${professionOfEncounter(encounter)}`} style={{ marginBottom: 8, padding: 10 }}>
+                    <div className="evolution-card-head">
+                      <span className="profession-badge">{specialtyOfEncounter(encounter)}</span>
+                      <time>{new Date(encounter.occurredAt).toLocaleString("es-AR")}</time>
+                    </div>
+                    <p className="small evolution-author">Profesional: {encounter.author?.fullName ?? "Sin dato"}</p>
                     <p style={{ margin: "4px 0" }}><strong>Motivo:</strong> {encounter.reason}</p>
                     <p style={{ margin: "4px 0" }}><strong>Plan:</strong> {encounter.plan}</p>
                     {encounter.content ? (
@@ -349,10 +383,13 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
                 {filteredEncounters.length === 0 ? <p className="small">Sin evoluciones para ese filtro.</p> : null}
                 {filteredEncounters.map((encounter) => (
-                  <article key={encounter.id} className="card" style={{ marginBottom: 10 }}>
-                    <p className="small">{new Date(encounter.occurredAt).toLocaleString("es-AR")}</p>
-                    <p className="small">
-                      Profesional: {encounter.author?.fullName ?? "Sin dato"} | Especialidad: {specialtyOfEncounter(encounter)} | Problema: {encounter.problem?.title ?? "Sin asociar"}
+                  <article key={encounter.id} className={`card evolution-card ${professionOfEncounter(encounter)}`} style={{ marginBottom: 10 }}>
+                    <div className="evolution-card-head">
+                      <span className="profession-badge">{specialtyOfEncounter(encounter)}</span>
+                      <time>{new Date(encounter.occurredAt).toLocaleString("es-AR")}</time>
+                    </div>
+                    <p className="small evolution-author">
+                      Profesional: {encounter.author?.fullName ?? "Sin dato"} | Problema: {encounter.problem?.title ?? "Sin asociar"}
                     </p>
                     <p><strong>Motivo:</strong> {encounter.reason}</p>
                     <p><strong>Plan:</strong> {encounter.plan}</p>

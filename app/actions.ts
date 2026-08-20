@@ -270,9 +270,10 @@ export async function createPatient(formData: FormData) {
 }
 
 export async function updatePatient(formData: FormData) {
-  const actor = await requireRole(["ADMIN", "RECEPCION"]);
+  const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
+  const patientIdInput = (formData.get("patientId") ?? "").toString();
   const parsed = patientSchema.safeParse({
-    patientId: formData.get("patientId"),
+    patientId: patientIdInput,
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
     nationalId: formData.get("nationalId"),
@@ -282,10 +283,22 @@ export async function updatePatient(formData: FormData) {
     phone: formData.get("phone"),
     address: formData.get("address")
   });
-  if (!parsed.success || !parsed.data.patientId) throw new Error("Datos de paciente invalidos");
+  if (!parsed.success || !parsed.data.patientId) {
+    if (patientIdInput) redirect(`/patients/${patientIdInput}?error=patient_update_invalid`);
+    redirect("/patients");
+  }
 
   const previous = await prisma.patient.findUnique({ where: { id: parsed.data.patientId } });
   if (!previous) throw new Error("Paciente no encontrado");
+
+  const duplicateNationalId = await prisma.patient.findFirst({
+    where: {
+      nationalId: parsed.data.nationalId,
+      id: { not: parsed.data.patientId }
+    },
+    select: { id: true }
+  });
+  if (duplicateNationalId) redirect(`/patients/${parsed.data.patientId}?error=patient_dni_exists`);
 
   const updated = await prisma.patient.update({
     where: { id: parsed.data.patientId },

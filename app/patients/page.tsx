@@ -45,48 +45,75 @@ export default async function PatientsPage({ searchParams }: Props) {
   const patients = await prisma.patient.findMany({
     where,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    include: { _count: { select: { encounters: true } } },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      nationalId: true,
+      birthDate: true,
+      _count: { select: { encounters: true } }
+    },
     take: 100
   });
 
   return (
-    <div className="split-layout">
-      <section className="card">
-        <h3 style={{ marginTop: 0 }}>Busqueda de pacientes</h3>
-        <form method="GET">
-          <div style={{ marginBottom: 8 }}>
-            <label>Buscar por DNI o nombre</label>
+    <div className="patients-page">
+      <section className="card patients-toolbar">
+        <div>
+          <p className="eyebrow">Directorio clinico</p>
+          <h2>Pacientes</h2>
+          <p className="small">Busca por nombre, apellido o DNI.</p>
+        </div>
+        <form method="GET" className="patient-search-form">
+          <div>
+            <label htmlFor="patient-search">Buscar paciente</label>
             <input
+              id="patient-search"
               name="q"
               defaultValue={params.q ?? ""}
               placeholder="Ej: 30111222 o Laura Gomez"
+              autoComplete="off"
             />
           </div>
-          <div className="row">
+          <div className="patient-search-actions">
             <SubmitButton pendingText="Buscando...">Buscar</SubmitButton>
             {(user.role === "ADMIN" || user.role === "RECEPCION" || user.role === "MEDICO" || user.role === "PSICOLOGO" || user.role === "FONOAUDIOLOGO" || user.role === "KINESIOLOGO" || user.role === "TERAPISTA_OCUPACIONAL") && (
-              <Link href="/patients/new"><button type="button">Nuevo</button></Link>
+              <Link href="/patients/new" className="button button-secondary">Nuevo paciente</Link>
             )}
           </div>
         </form>
       </section>
 
-      <section className="card">
-        <h3 style={{ marginTop: 0 }}>Pacientes ({patients.length})</h3>
+      <section className="card patients-results">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Resultados</p>
+            <h3>{q ? `Coincidencias para "${q}"` : "Todos los pacientes"}</h3>
+          </div>
+          <span className="result-count">{patients.length}</span>
+        </div>
         {patients.length === 0 ? <p className="small">Sin coincidencias.</p> : null}
 
-        {patients.map((patient) => (
-          <Link key={patient.id} href={`/patients/${patient.id}`}>
-            <article className="card">
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <strong>{patient.lastName}, {patient.firstName}</strong>
+        <div className="patient-card-grid">
+          {patients.map((patient) => (
+            <Link key={patient.id} href={`/patients/${patient.id}`} className="patient-card">
+              <span className="patient-avatar" aria-hidden="true">
+                {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
+              </span>
+              <div className="patient-card-body">
+                <div className="patient-card-title">
+                  <strong>{patient.lastName}, {patient.firstName}</strong>
+                  <span aria-hidden="true">→</span>
+                </div>
+                <div className="patient-card-meta">
+                  <span>DNI {patient.nationalId}</span>
+                  <span>{new Date(patient.birthDate).toLocaleDateString("es-AR")}</span>
+                </div>
                 <span className="badge">{patient._count.encounters} evoluciones</span>
               </div>
-              <p className="small" style={{ marginBottom: 0 }}>DNI: {patient.nationalId}</p>
-              <p className="small" style={{ marginBottom: 0 }}>ID: {patient.id}</p>
-            </article>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </section>
     </div>
   );
