@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createPatient } from "@/app/actions";
 import { requireRole } from "@/lib/auth";
+import PatientCoverageFields from "@/components/patient-coverage-fields";
+import SubmitButton from "@/components/submit-button";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -13,6 +15,7 @@ export default async function NewPatientPage({ searchParams }: Props) {
   return (
     <div className="card">
       <h2 style={{ marginTop: 0 }}>Alta de paciente</h2>
+      {params.error === "invalid" ? <p role="alert">Revisa los datos obligatorios y la longitud de los campos de cobertura.</p> : null}
       {params.error === "dni" ? (
         <p className="small" style={{ color: "#b3261e" }}>
           Ya existe un paciente con ese DNI.
@@ -57,8 +60,9 @@ export default async function NewPatientPage({ searchParams }: Props) {
             <input name="address" />
           </div>
         </div>
+        <PatientCoverageFields />
         <div className="row" style={{ marginTop: 12 }}>
-          <button type="submit">Guardar paciente</button>
+          <SubmitButton>Guardar paciente</SubmitButton>
           <Link href="/patients" className="small">Volver</Link>
         </div>
       </form>

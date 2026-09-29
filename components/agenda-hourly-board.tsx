@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createAppointment } from "@/app/actions";
 import SubmitButton from "@/components/submit-button";
+import PatientCoverageFields from "@/components/patient-coverage-fields";
 
 type HourItem = {
   id: string;
@@ -223,6 +224,7 @@ export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, defaultPati
               </label>
 
               {createNewPatient ? (
+                <div>
                 <div className="grid" style={{ marginBottom: 8 }}>
                   <div>
                     <label>Nombre</label>
@@ -274,6 +276,8 @@ export default function AgendaHourlyBoard({ dateFrom, slots, bySlot, defaultPati
                       <option value="X">X</option>
                     </select>
                   </div>
+                </div>
+                <PatientCoverageFields prefix="newPatient" />
                 </div>
               ) : null}
 

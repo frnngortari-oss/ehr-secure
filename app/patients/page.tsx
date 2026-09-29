@@ -1,11 +1,13 @@
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import Form from "next/form";
+import { patientPage, patientSearchWhere } from "@/lib/patient-search";
 import SubmitButton from "@/components/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 
 type SearchParams = {
   q?: string;
+  page?: string;
 };
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -14,47 +16,26 @@ export default async function PatientsPage({ searchParams }: Props) {
   const user = await requireUser();
   const params = await searchParams;
   const q = (params.q ?? "").trim();
-  const terms = q.split(/\s+/).filter(Boolean);
-  const numericQ = q.replace(/\D/g, "");
-
-  let where: Prisma.PatientWhereInput = {};
-  if (q.length > 0) {
-    const orFilters: Prisma.PatientWhereInput[] = [
-      { firstName: { contains: q, mode: "insensitive" } },
-      { lastName: { contains: q, mode: "insensitive" } }
-    ];
-
-    if (numericQ.length > 0) {
-      orFilters.push({ nationalId: { contains: numericQ } });
-    }
-
-    if (terms.length > 1) {
-      orFilters.push({
-        AND: terms.map((term) => ({
-          OR: [
-            { firstName: { contains: term, mode: "insensitive" } },
-            { lastName: { contains: term, mode: "insensitive" } }
-          ]
-        }))
-      });
-    }
-
-    where = { OR: orFilters };
-  }
-
-  const patients = await prisma.patient.findMany({
-    where,
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  const page = patientPage(params.page);
+  const pageSize = 24;
+  const rows = await prisma.patient.findMany({
+    where: patientSearchWhere(q),
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
     select: {
       id: true,
       firstName: true,
       lastName: true,
       nationalId: true,
       birthDate: true,
+      healthInsurance: true,
       _count: { select: { encounters: true } }
     },
-    take: 100
+    take: pageSize + 1,
+    skip: (page - 1) * pageSize
   });
+  const patients = rows.slice(0, pageSize);
+  const hasNextPage = rows.length > pageSize;
+  const pageHref = (value: number) => `/patients?${new URLSearchParams({ q, page: String(value) })}`;
 
   return (
     <div className="patients-page">
@@ -64,7 +45,7 @@ export default async function PatientsPage({ searchParams }: Props) {
           <h2>Pacientes</h2>
           <p className="small">Busca por nombre, apellido o DNI.</p>
         </div>
-        <form method="GET" className="patient-search-form">
+        <Form action="/patients" scroll={false} className="patient-search-form">
           <div>
             <label htmlFor="patient-search">Buscar paciente</label>
             <input
@@ -81,7 +62,7 @@ export default async function PatientsPage({ searchParams }: Props) {
               <Link href="/patients/new" className="button button-secondary">Nuevo paciente</Link>
             )}
           </div>
-        </form>
+        </Form>
       </section>
 
       <section className="card patients-results">
@@ -90,7 +71,7 @@ export default async function PatientsPage({ searchParams }: Props) {
             <p className="eyebrow">Resultados</p>
             <h3>{q ? `Coincidencias para "${q}"` : "Todos los pacientes"}</h3>
           </div>
-          <span className="result-count">{patients.length}</span>
+          <span className="small">Pagina {page} · {patients.length} pacientes</span>
         </div>
         {patients.length === 0 ? <p className="small">Sin coincidencias.</p> : null}
 
@@ -107,13 +88,18 @@ export default async function PatientsPage({ searchParams }: Props) {
                 </div>
                 <div className="patient-card-meta">
                   <span>DNI {patient.nationalId}</span>
-                  <span>{new Date(patient.birthDate).toLocaleDateString("es-AR")}</span>
+                  <span>{new Date(patient.birthDate).toLocaleDateString("es-AR", { timeZone: "UTC" })}</span>
                 </div>
                 <span className="badge">{patient._count.encounters} evoluciones</span>
+                {patient.healthInsurance ? <p className="patient-insurance-label">{patient.healthInsurance}</p> : null}
               </div>
             </Link>
           ))}
         </div>
+        <nav className="patient-pagination" aria-label="Paginas de pacientes">
+          {page > 1 ? <Link href={pageHref(page - 1)} className="button button-secondary">Anterior</Link> : null}
+          {hasNextPage ? <Link href={pageHref(page + 1)} className="button button-secondary">Siguiente</Link> : null}
+        </nav>
       </section>
     </div>
   );

@@ -57,9 +57,10 @@ export default function SidebarNav({ role }: Props) {
             <p className="sidebar-title">{section.title}</p>
             <div className="sidebar-links">
               {visibleItems.map((item) => {
-                const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+                const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`) &&
+                  !sections.some((group) => group.items.some((other) => other.href !== item.href && other.href === pathname)));
                 return (
-                  <Link key={item.href} href={item.href} className={active ? "sidebar-link active" : "sidebar-link"}>
+                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} title={item.label} className={active ? "sidebar-link active" : "sidebar-link"}>
                     <NavIcon name={item.icon} className="sidebar-icon" />
                     <span>{item.label}</span>
                   </Link>

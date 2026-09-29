@@ -24,6 +24,8 @@ export type BackupPayload = {
       email: string | null;
       phone: string | null;
       address: string | null;
+      healthInsurance: string | null;
+      memberNumber: string | null;
       createdAt: string;
       updatedAt: string;
     }>;
@@ -129,6 +131,8 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
         email: r.email,
         phone: r.phone,
         address: r.address,
+        healthInsurance: r.healthInsurance,
+        memberNumber: r.memberNumber,
         createdAt: toIso(r.createdAt),
         updatedAt: toIso(r.updatedAt)
       })),

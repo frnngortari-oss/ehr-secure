@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { coverageSchema, coverageFromForm, coverageData } from "@/lib/patient-coverage";
 import { prisma } from "@/lib/prisma";
 import { clearSession, getCurrentUser, requireRole, setSession } from "@/lib/auth";
 import { hashPassword, validatePasswordStrength, verifyPassword } from "@/lib/security";
@@ -15,7 +16,7 @@ const loginSchema = z.object({
   password: z.string().min(6)
 });
 
-const patientSchema = z.object({
+const patientSchema = coverageSchema.extend({
   patientId: z.string().uuid().optional(),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
@@ -86,7 +87,7 @@ const appointmentSchema = z.object({
   newPatientSex: z.enum(["F", "M", "X"]).optional()
 });
 
-const quickPatientSchema = z.object({
+const quickPatientSchema = coverageSchema.extend({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
   nationalId: z.string().min(6),
@@ -226,6 +227,7 @@ export async function logout() {
 export async function createPatient(formData: FormData) {
   const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const parsed = patientSchema.safeParse({
+    ...coverageFromForm(formData),
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
     nationalId: formData.get("nationalId"),
@@ -235,7 +237,7 @@ export async function createPatient(formData: FormData) {
     phone: formData.get("phone"),
     address: formData.get("address")
   });
-  if (!parsed.success) throw new Error("Datos de paciente invalidos");
+  if (!parsed.success) redirect("/patients/new?error=invalid");
 
   const alreadyExists = await prisma.patient.findUnique({
     where: { nationalId: parsed.data.nationalId }
@@ -244,6 +246,7 @@ export async function createPatient(formData: FormData) {
 
   const created = await prisma.patient.create({
     data: {
+      ...coverageData(parsed.data),
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       nationalId: parsed.data.nationalId,
@@ -273,6 +276,7 @@ export async function updatePatient(formData: FormData) {
   const actor = await requireRole(["ADMIN", "RECEPCION", "MEDICO", "PSICOLOGO", "FONOAUDIOLOGO", "KINESIOLOGO", "TERAPISTA_OCUPACIONAL"]);
   const patientIdInput = (formData.get("patientId") ?? "").toString();
   const parsed = patientSchema.safeParse({
+    ...coverageFromForm(formData),
     patientId: patientIdInput,
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -303,6 +307,7 @@ export async function updatePatient(formData: FormData) {
   const updated = await prisma.patient.update({
     where: { id: parsed.data.patientId },
     data: {
+      ...coverageData(parsed.data),
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       nationalId: parsed.data.nationalId,
@@ -328,7 +333,9 @@ export async function updatePatient(formData: FormData) {
   revalidatePath(`/patients/${updated.id}`);
   revalidatePath("/patients");
   revalidatePath("/patients/search");
-  redirect(`/patients/${updated.id}`);
+  revalidatePath("/agenda");
+  revalidatePath("/evolutions");
+  redirect(`/patients/${updated.id}?saved=1`);
 }
 
 export async function createProblem(formData: FormData) {
@@ -599,6 +606,7 @@ export async function createAppointment(formData: FormData) {
 
   if (shouldCreatePatient) {
     const quickParsed = quickPatientSchema.safeParse({
+      ...coverageFromForm(formData, "newPatient"),
       firstName: parsed.data.newPatientFirstName,
       lastName: parsed.data.newPatientLastName,
       nationalId: parsed.data.newPatientNationalId,
@@ -616,6 +624,7 @@ export async function createAppointment(formData: FormData) {
     } else {
       const createdPatient = await prisma.patient.create({
         data: {
+          ...coverageData(quickParsed.data),
           firstName: quickParsed.data.firstName,
           lastName: quickParsed.data.lastName,
           nationalId: quickParsed.data.nationalId,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { patientSearchWhere } from "@/lib/patient-search";
 
 export const dynamic = "force-dynamic";
 
@@ -23,17 +24,11 @@ export async function GET(request: Request) {
   }
 
   const patients = await prisma.patient.findMany({
-    where: {
-      OR: [
-        { firstName: { contains: q, mode: "insensitive" } },
-        { lastName: { contains: q, mode: "insensitive" } },
-        { nationalId: { contains: q } }
-      ]
-    },
+    where: patientSearchWhere(q),
     select: { id: true, firstName: true, lastName: true, nationalId: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     take: limit
   });
 
-  return NextResponse.json({ patients });
+  return NextResponse.json({ patients }, { headers: { "Cache-Control": "private, no-store" } });
 }

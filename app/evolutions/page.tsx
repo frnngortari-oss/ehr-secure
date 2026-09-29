@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Form from "next/form";
+import { patientSearchWhere } from "@/lib/patient-search";
 import { deleteEncounter } from "@/app/actions";
 import FormattedEvolutionText from "@/components/formatted-evolution-text";
 import SubmitButton from "@/components/submit-button";
@@ -28,21 +30,13 @@ export default async function EvolutionsPage({ searchParams }: Props) {
   const dayStart = params.day ? toDate(params.day) : undefined;
   const dayEnd = params.day ? toDate(params.day, true) : undefined;
 
-  const evolutions = await prisma.encounter.findMany({
+  const [evolutions, categories] = await Promise.all([prisma.encounter.findMany({
     where: {
       occurredAt: {
         gte: dayStart ?? toDate(params.dateFrom),
         lte: dayEnd ?? toDate(params.dateTo, true)
       },
-      patient: params.patient
-        ? {
-            OR: [
-              { firstName: { contains: params.patient, mode: "insensitive" } },
-              { lastName: { contains: params.patient, mode: "insensitive" } },
-              { nationalId: { contains: params.patient } }
-            ]
-          }
-        : undefined,
+      patient: params.patient ? patientSearchWhere(params.patient) : undefined,
       problem: params.category ? { category: params.category } : undefined
     },
     select: {
@@ -60,14 +54,12 @@ export default async function EvolutionsPage({ searchParams }: Props) {
     },
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     take: 100
-  });
-
-  const categories = await prisma.problem.findMany({
+  }), prisma.problem.findMany({
     where: { isActive: true },
     distinct: ["category"],
     select: { category: true },
     orderBy: { category: "asc" }
-  });
+  })]);
 
   const returnQs = new URLSearchParams();
   if (params.patient) returnQs.set("patient", params.patient);
@@ -81,7 +73,7 @@ export default async function EvolutionsPage({ searchParams }: Props) {
     <div className="split-layout">
       <aside className="card">
         <h3 style={{ marginTop: 0 }}>Evoluciones</h3>
-        <form method="GET">
+        <Form action="/evolutions" scroll={false}>
           <div style={{ marginBottom: 8 }}>
             <label>Paciente</label>
             <input name="patient" defaultValue={params.patient ?? ""} placeholder="Nombre o DNI" />
@@ -111,10 +103,10 @@ export default async function EvolutionsPage({ searchParams }: Props) {
             </select>
           </div>
           <SubmitButton pendingText="Filtrando...">Filtrar</SubmitButton>
-          <a href="/evolutions" className="small" style={{ marginLeft: 10, textDecoration: "underline", color: "#0d4f91" }}>
+          <Link href="/evolutions" scroll={false} className="small" style={{ marginLeft: 10, textDecoration: "underline", color: "#0d4f91" }}>
             Limpiar
-          </a>
-        </form>
+          </Link>
+        </Form>
       </aside>
 
       <section className="card">

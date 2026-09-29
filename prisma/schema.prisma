@@ -58,6 +58,8 @@ model Patient {
   email      String?
   phone      String?
   address    String?
+  healthInsurance String?
+  memberNumber String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   encounters Encounter[]

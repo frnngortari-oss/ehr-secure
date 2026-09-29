@@ -298,7 +298,7 @@ html.is-route-pending .app-main {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 10px;
 }
 
@@ -1141,14 +1141,16 @@ label {
 
 .patient-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
 
 .patient-subindex {
   position: sticky;
-  top: 12px;
+  top: 84px;
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
 }
 
 .subindex-link {
@@ -1252,6 +1254,7 @@ label {
 
   .patient-subindex {
     position: static;
+    max-height: none;
   }
 
   .kpi-grid {
@@ -1342,6 +1345,43 @@ label {
     flex-direction: column;
     gap: 5px;
   }
+}
+
+.coverage-fields {
+  margin: 20px 0 8px;
+  padding: 16px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.coverage-fields legend { padding: 0 8px; color: var(--brand-color); font-weight: 700; }
+.coverage-fields .small { margin: 0 0 12px; }
+.coverage-fields label { display: block; margin-bottom: 5px; }
+.patient-coverage-summary { display: flex; flex-wrap: wrap; gap: 12px 28px; border-top: 1px solid var(--border); padding-top: 12px; }
+.patient-coverage-summary > div { display: grid; gap: 3px; min-width: 0; }
+.patient-coverage-summary span { font-size: 12px; color: var(--muted); }
+.patient-coverage-summary strong { overflow-wrap: anywhere; font-size: 14px; }
+.patient-profile-header > div { min-width: 0; flex: 1; }
+.patient-profile-header h2 { overflow-wrap: anywhere; }
+.patient-insurance-label { font-size: 12px; color: var(--brand-color); margin: 8px 0 0; overflow-wrap: anywhere; }
+.patient-pagination { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+.save-notice { background: #e5f6ed; color: #195c3b; padding: 12px 16px; border: 1px solid #addbc2; border-radius: 12px; }
+.evolution-card { overflow-wrap: anywhere; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+@media (min-width: 1025px) and (max-width: 1350px) {
+  .patients-toolbar { grid-template-columns: 1fr; gap: 14px; }
+}
+
+@media (max-width: 1024px) {
+  .app-shell.with-sidebar:has(.sidebar-toggle-input:checked) { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .patient-coverage-summary { flex-direction: column; gap: 10px; }
+  .coverage-fields { padding: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

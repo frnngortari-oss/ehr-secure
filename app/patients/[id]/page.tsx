@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Form from "next/form";
+import PatientCoverageFields from "@/components/patient-coverage-fields";
 import { notFound } from "next/navigation";
 import { createProblem, deleteEncounter, updateEncounter, updatePatient } from "@/app/actions";
 import EvolutionComposeDrawer from "@/components/evolution-compose-drawer";
@@ -15,6 +17,7 @@ type SearchParams = {
   evoSpecialty?: string;
   evoProblemId?: string;
   error?: string;
+  saved?: string;
 };
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> };
@@ -44,6 +47,8 @@ export default async function PatientDetailPage({ params, searchParams }: Params
       email: true,
       phone: true,
       address: true,
+      healthInsurance: true,
+      memberNumber: true,
       encounters: {
         select: {
           id: true,
@@ -160,6 +165,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
 
   return (
     <div>
+      {query.saved === "1" ? <p role="status" className="save-notice">Datos del paciente actualizados.</p> : null}
       {errorCode && errorText[errorCode] ? (
         <div className="card" style={{ borderColor: "#ef4444", background: "#fff1f2" }}>
           <p style={{ margin: 0, color: "#9f1239", fontWeight: 600 }}>{errorText[errorCode]}</p>
@@ -175,18 +181,22 @@ export default async function PatientDetailPage({ params, searchParams }: Params
           <h2>{patient.lastName}, {patient.firstName}</h2>
           <div className="patient-profile-meta">
             <span>DNI {patient.nationalId}</span>
-            <span>Nacimiento {new Date(patient.birthDate).toLocaleDateString("es-AR")}</span>
+            <span>Nacimiento {new Date(patient.birthDate).toLocaleDateString("es-AR", { timeZone: "UTC" })}</span>
             {patient.phone ? <span>{patient.phone}</span> : null}
+          </div>
+          <div className="patient-coverage-summary">
+            <div><span>Obra social / prepaga</span><strong>{patient.healthInsurance || "Sin informar"}</strong></div>
+            <div><span>Numero de afiliado</span><strong>{patient.memberNumber || "Sin informar"}</strong></div>
           </div>
         </div>
       </div>
 
       {canEditPatient && (
-        <details className="card patient-edit-panel">
+        <details className="card patient-edit-panel" open={errorCode.startsWith("patient_") || undefined}>
           <summary>
             <span>
               <strong>Datos personales</strong>
-              <small>Editar contacto, DNI o fecha de nacimiento</small>
+              <small>Editar contacto, cobertura y datos de identificacion</small>
             </span>
             <span className="edit-action">Editar</span>
           </summary>
@@ -230,6 +240,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                 <input name="address" defaultValue={patient.address ?? ""} />
               </div>
             </div>
+            <PatientCoverageFields healthInsurance={patient.healthInsurance} memberNumber={patient.memberNumber} />
             <div className="row" style={{ marginTop: 12 }}>
               <SubmitButton>Guardar cambios</SubmitButton>
             </div>
@@ -362,7 +373,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                     />
                   ) : null}
                 </div>
-                <form method="GET" className="grid" style={{ marginBottom: 10 }}>
+                <Form action={`/patients/${patient.id}`} scroll={false} className="grid" style={{ marginBottom: 10 }}>
                   <input type="hidden" name="section" value="evolutions" />
                   <input type="hidden" name="problemId" value={selectedProblemCardId} />
                   <input type="hidden" name="evoSpecialty" value={evoSpecialty} />
@@ -379,7 +390,7 @@ export default async function PatientDetailPage({ params, searchParams }: Params
                   <div className="row" style={{ alignItems: "flex-end" }}>
                     <SubmitButton pendingText="Aplicando...">Aplicar</SubmitButton>
                   </div>
-                </form>
+                </Form>
 
                 {filteredEncounters.length === 0 ? <p className="small">Sin evoluciones para ese filtro.</p> : null}
                 {filteredEncounters.map((encounter) => (
